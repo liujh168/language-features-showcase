@@ -67,7 +67,7 @@
 | U3 | 深色/浅色主题切换 | ⏳ | |
 | U4 | 根目录 `index.html` 导航首页，串起所有主题 UI | ✅ | 2026-10-23 完成，并配 `server.js` + `npm run dev` 静态预览（Kimi 分配真实端口） |
 | U5 | 主题 01 改造为六语言可编辑实验页：编辑源码、点击运行、显示编译错误与实际输出 | ⏳ 已评估，暂不实施 | 2026-10-25 方案评审：适合作为跨主题样板；MVP 采用本机受信任运行服务，五语言可用、C++ 缺工具链时明确不可用。要求构建/运行分阶段、固定语言适配器与参数、独立临时目录、超时/输出/并发限制、进程树终止、禁止联网拉依赖；初始源码以真实示例为单一事实源，TS 类型错误需 `tsc --noEmit`。公网开放必须另用容器/VM 沙箱，不得直接暴露本机执行接口 |
-| U6 | GitHub Pages 主站 + WordPress 入口页 | ✅ 本地改造完成，待远程发布 | 2026-10-25 完成子路径兼容、`.nojekyll`、Pages Actions 与 WordPress iframe 模板；模拟验证 14 页面、14 份 Markdown、27 个站内链接通过 |
+| U6 | GitHub Pages 主站 + WordPress 入口页 | ✅ 已发布并验收 | 2026-10-25 公开仓库 `liujh168/language-features-showcase`，Pages 主站 `https://code.liujh168.com/language-features-showcase/`；线上验证 14 页面、14 份 Markdown、27 个站内链接通过，WordPress iframe 模板已写入 README |
 
 ---
 
@@ -100,4 +100,5 @@
 - **2026-10-25（工程化收尾）** 修复校验漏计：每项明确 PASS / FAIL / SKIP，强制校验 71 项总数，构建与运行日志分离，新增 `npm test` 和严格模式 `npm run test:all`；C++ / JNI 构建改为自动发现 MSVC、JDK，移除固定安装目录；锁定 `tsx@4.23.15` 并生成 `package-lock.json`；首页、README 与主题 01–08 的五语言遗留表述同步为六语言。当前实跑 **23 passed, 0 failed, 48 skipped, 71 total**。
 - **2026-10-25（工具链排查与 Java 恢复）** 旧 Go/Rust/JDK/VS Build Tools 安装目录均已不存在；注册表中的 Visual Studio 记录为失效残留。发现 Android Studio 自带 JDK 25，通过本机 `toolchains.local.json` 接入，普通 Java 11 项全部恢复通过；LLVM Clang 23 已安装，但缺少 Windows C++ 标准库，实测无法编译 iostream 示例。`setup-msvc.bat` 补充系统目录回退。最新结果 **34 passed, 0 failed, 37 skipped, 71 total**。
 - **2026-10-25（便携 Go/Rust 恢复）** 官方便携包校验 SHA-256 后安装至项目内 `.toolchains/`，未修改系统环境变量；Go 使用 1.26.10，Rust/Cargo 使用 1.99.1，crate 缓存与 Go 构建缓存均项目内化。Rust 默认 gnullvm，主题 02、04 针对本机 Windows 启动限制改用 GNU，均无需 MSVC。`npm test` 实跑 **58 passed, 0 failed, 13 skipped, 71 total**；`npm run test:all` 汇总相同并因预期跳过返回 1。剩余仅 C++ 12 项与 JNI Java 1 项。
-- **2026-10-25（Pages 部署改造）** 主题页返回总索引和 Markdown 加载改为相对路径，兼容 GitHub 项目 Pages 与 WordPress 子目录；新增 `.nojekyll` 和 `.github/workflows/deploy-pages.yml`，README 增加发布步骤及 WordPress iframe 模板。模拟 `/<仓库名>/` 验证 14 个页面、14 份 Markdown、27 个站内链接通过。仅完成本地改造，尚未创建远程仓库或发布。
+- **2026-10-25（Pages 部署改造）** 主题页返回总索引和 Markdown 加载改为相对路径，兼容 GitHub 项目 Pages 与 WordPress 子目录；新增 `.nojekyll` 和 `.github/workflows/deploy-pages.yml`，README 增加发布步骤及 WordPress iframe 模板。模拟 `/<仓库名>/` 验证 14 个页面、14 份 Markdown、27 个站内链接通过。
+- **2026-10-25（Pages 正式发布）** 创建公开仓库 `liujh168/language-features-showcase` 并推送 `main`，启用 workflow 模式 Pages；首次工作流因 Pages 尚未启用失败，启用后重跑成功。主站 `https://code.liujh168.com/language-features-showcase/` 已验收 14 个页面、14 份 Markdown、27 个站内链接，标准 github.io 地址正常 301 跳转。README 已回填实际地址和可直接使用的 WordPress iframe 代码。

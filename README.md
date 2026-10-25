@@ -98,23 +98,22 @@ cd topics/01-generics/cpp && .\build-and-run.bat   # Windows/MSVC；其他平台
 
 项目是纯静态网站，Pages 不需要运行 `server.js`、安装 npm 依赖或编译六语言示例。仓库已包含 `.nojekyll`（保留原始 Markdown 文件）和 `.github/workflows/deploy-pages.yml`（自动发布）；页面与文档链接均兼容 `/<仓库名>/` 子路径。
 
-1. 将项目推送到 GitHub 仓库的 `main` 分支。
-2. 在仓库 **Settings → Pages → Build and deployment → Source** 中选择 **GitHub Actions**。
-3. 推送到 `main`，或在 Actions 中手动运行 **Deploy static site to GitHub Pages**。
-4. 部署地址通常为 `https://<GitHub用户名>.github.io/<仓库名>/`，以工作流输出的实际地址为准。
+1. 公开仓库：`https://github.com/liujh168/language-features-showcase`。
+2. Pages 已选择 **GitHub Actions**，推送到 `main` 会自动发布，也可在 Actions 中手动运行 **Deploy static site to GitHub Pages**。
+3. 当前线上地址：`https://code.liujh168.com/language-features-showcase/`；标准地址 `https://liujh168.github.io/language-features-showcase/` 会跳转到该自定义域名。
 
-在 WordPress 中新增页面，使用“自定义 HTML”区块嵌入以下入口；替换 URL 后即可。若站点不允许 iframe，可只保留新窗口链接。
+在 WordPress 中新增页面，使用“自定义 HTML”区块嵌入以下入口即可。若站点不允许 iframe，可只保留新窗口链接。
 
 ```html
 <div style="position:relative;width:100%;min-height:720px;">
   <iframe
-    src="https://<GitHub用户名>.github.io/<仓库名>/"
+    src="https://code.liujh168.com/language-features-showcase/"
     title="现代编程语言功能演示库"
     style="position:absolute;inset:0;width:100%;height:100%;border:0;"
     loading="lazy">
   </iframe>
 </div>
-<p><a href="https://<GitHub用户名>.github.io/<仓库名>/" target="_blank" rel="noopener">在新窗口打开语言特性演示库</a></p>
+<p><a href="https://code.liujh168.com/language-features-showcase/" target="_blank" rel="noopener">在新窗口打开语言特性演示库</a></p>
 ```
 
 Pages 仅发布静态展示功能；ROADMAP 中规划的六语言代码执行实验页不得直接暴露为公网执行接口。

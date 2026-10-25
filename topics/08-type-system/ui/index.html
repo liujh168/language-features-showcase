@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>主题 08：类型系统 · 六语言对比</title>
+<style>
+  :root { --bg:#0d1117; --panel:#161b22; --border:#30363d; --fg:#e6edf3; --muted:#8b949e; --accent:#58a6ff; --ok:#3fb950; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { background:var(--bg); color:var(--fg); font-family:"Segoe UI","Microsoft YaHei",sans-serif; line-height:1.7; }
+  .wrap { max-width:960px; margin:0 auto; padding:32px 20px 64px; }
+  a { color:var(--accent); text-decoration:none; }
+  .crumb { color:var(--muted); font-size:13px; margin-bottom:12px; }
+  h1 { font-size:26px; margin-bottom:4px; }
+  .sub { color:var(--muted); margin-bottom:24px; }
+  .card { background:var(--panel); border:1px solid var(--border); border-radius:10px; padding:20px; margin-bottom:20px; }
+  .card h2 { font-size:17px; margin-bottom:12px; color:var(--accent); }
+  .tabs { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px; }
+  .tab { padding:6px 16px; border-radius:20px; border:1px solid var(--border); background:transparent; color:var(--muted); cursor:pointer; font-size:14px; }
+  .tab.active { background:var(--accent); border-color:var(--accent); color:#0d1117; font-weight:600; }
+  pre { background:#0a0e14; border:1px solid var(--border); border-radius:8px; padding:16px; overflow-x:auto; font-family:Consolas,"Cascadia Code",monospace; font-size:13.5px; line-height:1.6; }
+  code .k { color:#ff7b72; } code .t { color:#79c0ff; } code .s { color:#a5d6ff; } code .c { color:#8b949e; font-style:italic; } code .n { color:#79c0ff; }
+  .note { color:var(--muted); font-size:14px; margin-bottom:12px; }
+  .run { border-left:3px solid var(--ok); }
+  .run .label { color:var(--ok); font-size:12px; letter-spacing:1px; margin-bottom:8px; }
+  .run pre { color:#7ee787; }
+  table { width:100%; border-collapse:collapse; font-size:13.5px; }
+  th,td { border:1px solid var(--border); padding:8px 10px; text-align:left; }
+  th { background:#1c2129; color:var(--accent); }
+  tr:nth-child(even) td { background:#141920; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="crumb"><a href="../../../viewer.html?file=README.md">← 返回总索引</a></div>
+  <h1>主题 08：类型系统 Type System</h1>
+  <p class="sub">Dog/Cat 多态一道题，三种类型哲学的终极对比 · 学习对比用</p>
+
+  <div class="card">
+    <h2>本题要做什么</h2>
+    <p class="note">Dog（woof）、Cat（meow）统一调用 <code>speak()</code>。
+    六个语言输出<strong style="color:var(--fg)">逐字节一致</strong>，但“谁算 Animal”的答案完全不同。</p>
+  </div>
+
+  <div class="card">
+    <h2>代码对比（点击切换语言）</h2>
+    <div class="tabs" id="tabs"></div>
+    <p class="note" id="note"></p>
+    <pre><code id="code"></code></pre>
+    <div class="run" style="margin-top:14px;">
+      <div class="label">预期输出（六个语言逐字节一致）</div>
+      <pre>dog says: woof
+cat says: meow</pre>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>三种类型哲学</h2>
+    <table>
+      <tr><th>语言</th><th>哲学</th><th>接口声明</th><th>分发方式</th></tr>
+      <tr><td>C++</td><td>名义类型</td><td>抽象基类（显式继承）</td><td>vtable 动态</td></tr>
+      <tr><td>Rust</td><td>trait（混合）</td><td>trait + impl（实现与类型分离）</td><td>dyn 动态 / 泛型静态</td></tr>
+      <tr><td>Go</td><td>结构化</td><td>interface（隐式满足）</td><td>接口值动态</td></tr>
+      <tr><td>TS</td><td>结构化</td><td>interface（可显可隐）</td><td>擦除后动态</td></tr>
+      <tr><td>Python</td><td>鸭子类型</td><td>无（Protocol 仅检查器）</td><td>属性查找动态</td></tr>
+    </table>
+  </div>
+
+  <div class="card">
+    <h2>教学要点</h2>
+    <p class="note">1. <strong style="color:var(--fg)">名义类型</strong>：类型身份由声明决定（C++ 不继承 Animal 就不是）；<strong style="color:var(--fg)">结构化类型</strong>：由形状决定（长得像就是）。<br>
+    2. Go 接口的灵魂：<strong style="color:var(--fg)">由使用者定义</strong>——小接口 + 隐式满足，测试时随便 mock。<br>
+    3. Rust 一个 trait 两种分发：dyn（运行时灵活）vs 泛型（编译期零成本），开发者自己权衡。</p>
+  </div>
+</div>
+
+<script>
+const LANGS = [
+  { id:"rust", name:"Rust", note:"trait 实现与类型定义分离；&dyn Animal 动态分发，impl Trait 静态分发。",
+    code:`<span class="k">trait</span> <span class="t">Animal</span> {
+    <span class="k">fn</span> speak(&amp;<span class="k">self</span>) -&gt; &<span class="s">'static str</span>;
+}
+
+<span class="k">impl</span> <span class="t">Animal</span> <span class="k">for</span> <span class="t">Dog</span> {
+    <span class="k">fn</span> speak(&amp;<span class="k">self</span>) -&gt; &<span class="s">'static str</span> { <span class="s">"woof"</span> }
+}
+
+<span class="c">// &dyn Animal = 动态分发：运行期查 vtable 决定调谁</span>
+<span class="k">let</span> animals: [(&amp;<span class="k">str</span>, &amp;<span class="k">dyn</span> <span class="t">Animal</span>); <span class="n">2</span>] =
+    [(<span class="s">"dog"</span>, &amp;dog), (<span class="s">"cat"</span>, &amp;cat)];` },
+  { id:"cpp", name:"C++", note:"名义类型：is-a 关系写死在继承链上，多态靠虚函数。",
+    code:`<span class="k">struct</span> <span class="t">Animal</span> {                      <span class="c">// 抽象基类 = 接口</span>
+    <span class="k">virtual</span> std::string speak() <span class="k">const</span> = <span class="n">0</span>;  <span class="c">// 纯虚函数</span>
+    <span class="k">virtual</span> ~<span class="t">Animal</span>() = <span class="k">default</span>;
+};
+
+<span class="k">struct</span> <span class="t">Dog</span> : <span class="t">Animal</span> {
+    std::string speak() <span class="k">const override</span> { <span class="k">return</span> <span class="s">"woof"</span>; }
+};
+
+animals.emplace_back(<span class="s">"dog"</span>, std::make_unique&lt;<span class="t">Dog</span&gt;());` },
+  { id:"go", name:"Go", note:"隐式实现：不写 implements，方法集匹配即满足接口。接口由使用者定义。",
+    code:`<span class="k">type</span> <span class="t">Animal</span> <span class="k">interface</span> {
+    <span class="t">Speak</span>() <span class="k">string</span>
+}
+
+<span class="k">func</span> (<span class="t">Dog</span>) <span class="t">Speak</span>() <span class="k">string</span> { <span class="k">return</span> <span class="s">"woof"</span> }
+
+<span class="c">// Dog 什么都没声明，但方法就是“证书”</span>
+animals := []<span class="k">struct</span> {
+    name <span class="k">string</span>
+    a    <span class="t">Animal</span>
+}{ {<span class="s">"dog"</span>, <span class="t">Dog</span>{}}, {<span class="s">"cat"</span>, <span class="t">Cat</span>{}} }` },
+  { id:"ts", name:"TypeScript", note:"结构化类型：结构匹配即可，implements 可以省略（写了更好）。",
+    code:`<span class="k">interface</span> <span class="t">Animal</span> {
+  speak(): <span class="k">string</span>;
+}
+
+<span class="k">class</span> <span class="t">Dog</span> <span class="k">implements</span> <span class="t">Animal</span> {
+  speak() { <span class="k">return</span> <span class="s">"woof"</span>; }
+}
+
+<span class="c">// 就算不写 implements，只要结构匹配就通过类型检查</span>
+<span class="k">const</span> animals: [<span class="k">string</span>, <span class="t">Animal</span>][] = [
+  [<span class="s">"dog"</span>, <span class="k">new</span> <span class="t">Dog</span>()],
+];` },
+  { id:"python", name:"Python", note:"鸭子类型：什么都不声明，有 speak() 方法就能用。Protocol 只是检查器约定。",
+    code:`<span class="k">class</span> <span class="t">Dog</span>:
+    <span class="k">def</span> <span class="t">speak</span>(self) -&gt; <span class="k">str</span>:
+        <span class="k">return</span> <span class="s">"woof"</span>
+
+<span class="k">class</span> <span class="t">Cat</span>:
+    <span class="k">def</span> <span class="t">speak</span>(self) -&gt; <span class="k">str</span>:
+        <span class="k">return</span> <span class="s">"meow"</span>
+
+<span class="c"># Dog/Cat 没有共同基类——</span>
+<span class="c"># 唯一的“接口”就是都有 speak()</span>
+<span class="k">for</span> name, a <span class="k">in</span> [(<span class="s">"dog"</span>, <span class="t">Dog</span>()), (<span class="s">"cat"</span>, <span class="t">Cat</span>())]:
+    print(<span class="s">f"{name} says: {a.speak()}"</span>)` },
+  { id:"java", name:"Java", note:"名义类型：必须显式 implements，与 Python 鸭子类型两极。record（16+）提供数据类糖。",
+    code:`<span class="k">interface</span> <span class="t">Speaker</span> { <span class="t">String</span> <span class="t">speak</span>(); }
+
+<span class="k">class</span> <span class="t">Dog</span> <span class="k">implements</span> <span class="t">Speaker</span> { <span class="c">// 显式声明</span>
+    <span class="k">public</span> <span class="t">String</span> <span class="t">speak</span>() { <span class="k">return</span> <span class="s">"woof"</span>; }
+}
+<span class="c">// 编译器按“声明的名字”检查，不按“实际有的方法”</span>` },
+];
+const tabs = document.getElementById("tabs"), codeEl = document.getElementById("code"), noteEl = document.getElementById("note");
+LANGS.forEach((l, i) => {
+  const b = document.createElement("button");
+  b.className = "tab" + (i === 0 ? " active" : "");
+  b.textContent = l.name;
+  b.onclick = () => {
+    document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+    b.classList.add("active"); codeEl.innerHTML = l.code; noteEl.textContent = l.note;
+  };
+  tabs.appendChild(b);
+});
+codeEl.innerHTML = LANGS[0].code; noteEl.textContent = LANGS[0].note;
+</script>
+</body>
+</html>

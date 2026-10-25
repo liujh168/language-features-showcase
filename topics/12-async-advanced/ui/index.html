@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>主题 12：异步进阶 · 六语言对比</title>
+<style>
+  :root { --bg:#0d1117; --panel:#161b22; --border:#30363d; --fg:#e6edf3; --muted:#8b949e; --accent:#58a6ff; --ok:#3fb950; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { background:var(--bg); color:var(--fg); font-family:"Segoe UI","Microsoft YaHei",sans-serif; line-height:1.7; }
+  .wrap { max-width:960px; margin:0 auto; padding:32px 20px 64px; }
+  a { color:var(--accent); text-decoration:none; }
+  .crumb { color:var(--muted); font-size:13px; margin-bottom:12px; }
+  h1 { font-size:26px; margin-bottom:4px; }
+  .sub { color:var(--muted); margin-bottom:24px; }
+  .card { background:var(--panel); border:1px solid var(--border); border-radius:10px; padding:20px; margin-bottom:20px; }
+  .card h2 { font-size:17px; margin-bottom:12px; color:var(--accent); }
+  .tabs { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px; }
+  .tab { padding:6px 16px; border-radius:20px; border:1px solid var(--border); background:transparent; color:var(--muted); cursor:pointer; font-size:14px; }
+  .tab.active { background:var(--accent); border-color:var(--accent); color:#0d1117; font-weight:600; }
+  pre { background:#0a0e14; border:1px solid var(--border); border-radius:8px; padding:16px; overflow-x:auto; font-family:Consolas,"Cascadia Code",monospace; font-size:13.5px; line-height:1.6; }
+  code .k{color:#ff7b72;} code .t{color:#79c0ff;} code .s{color:#a5d6ff;} code .c{color:#8b949e;font-style:italic;} code .n{color:#79c0ff;}
+  .note { color:var(--muted); font-size:14px; margin-bottom:12px; }
+  .run { border-left:3px solid var(--ok); }
+  .run .label { color:var(--ok); font-size:12px; letter-spacing:1px; margin-bottom:8px; }
+  .run pre { color:#7ee787; }
+  table { width:100%; border-collapse:collapse; font-size:13.5px; }
+  th,td { border:1px solid var(--border); padding:8px 10px; text-align:left; }
+  th { background:#1c2129; color:var(--accent); }
+  tr:nth-child(even) td { background:#141920; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="crumb"><a href="../../../viewer.html?file=README.md">← 返回总索引</a></div>
+  <h1>主题 12：异步生态进阶</h1>
+  <p class="sub">三任务完成竞赛 + 汇合 · async/await 只是语法，运行时才是本体</p>
+
+  <div class="card">
+    <h2>本题要做什么</h2>
+    <ol style="padding-left:22px; color:var(--muted);">
+      <li>fast(10ms) / medium(100ms) / slow(300ms) 三个任务<strong style="color:var(--fg)">同时</strong>开跑</li>
+      <li>按<strong style="color:var(--fg)">完成顺序</strong>输出（不是启动顺序）</li>
+      <li>全部结束后打印 <code>all settled</code></li>
+    </ol>
+  </div>
+
+  <div class="card">
+    <h2>代码对比（点击切换语言）</h2>
+    <div class="tabs" id="tabs"></div>
+    <p class="note" id="note"></p>
+    <pre><code id="code"></code></pre>
+    <div class="run" style="margin-top:14px;">
+      <div class="label">预期输出（六语言逐字节一致）</div>
+      <pre>start 3 tasks
+task fast finished
+task medium finished
+task slow finished
+all settled</pre>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>编排机制速览</h2>
+    <table>
+      <tr><th>语言</th><th>汇合原语</th><th>底层模型</th><th>一句话</th></tr>
+      <tr><td>TypeScript</td><td>Promise.all</td><td>单线程事件循环</td><td>await 即让出</td></tr>
+      <tr><td>Python</td><td>asyncio.gather</td><td>单线程事件循环</td><td>与 TS 同构</td></tr>
+      <tr><td>Go</td><td>channel 接收循环</td><td>M:N goroutine</td><td>无 async 关键字</td></tr>
+      <tr><td>Rust</td><td>tokio::join!</td><td>work-stealing 调度器</td><td>运行时交给生态</td></tr>
+      <tr><td>C++</td><td>future.get()</td><td>系统线程</td><td>协程有语法无运行时</td></tr>
+      <tr><td>Java</td><td>allOf().join()</td><td>ForkJoinPool/虚拟线程</td><td>双轨：CF + 虚拟线程</td></tr>
+    </table>
+  </div>
+</div>
+
+<script>
+const LANGS = [
+  { id:"ts", name:"TypeScript", note:"async 函数调用即启动；Promise.all 汇合。",
+    code:`<span class="k">async function</span> <span class="t">work</span>(name: <span class="k">string</span>, ms: <span class="k">number</span>) {
+  <span class="k">await new</span> <span class="t">Promise</span>((r) =&gt; setTimeout(r, ms));
+  console.log(<span class="s">\`task \${name} finished\`</span>);
+}
+<span class="k">await</span> <span class="t">Promise</span>.all([work(<span class="s">"fast"</span>, <span class="n">10</span>), work(<span class="s">"medium"</span>, <span class="n">100</span>), work(<span class="s">"slow"</span>, <span class="n">300</span>)]);` },
+  { id:"python", name:"Python", note:"asyncio 与 TS 事件循环同构：sleep 即挂起点。",
+    code:`<span class="k">async def</span> <span class="t">work</span>(name, ms):
+    <span class="k">await</span> asyncio.sleep(ms / <span class="n">1000</span>)
+    print(<span class="s">f"task {name} finished"</span>)
+
+<span class="k">await</span> asyncio.gather(work(<span class="s">"fast"</span>, <span class="n">10</span>), work(<span class="s">"medium"</span>, <span class="n">100</span>), work(<span class="s">"slow"</span>, <span class="n">300</span>))
+asyncio.run(main())` },
+  { id:"go", name:"Go", note:"channel 按完成顺序交付——竞赛是 Go 的自然表达。",
+    code:`<span class="k">go</span> work(<span class="s">"fast"</span>, <span class="n">10</span>, done)
+<span class="k">go</span> work(<span class="s">"medium"</span>, <span class="n">100</span>, done)
+<span class="k">go</span> work(<span class="s">"slow"</span>, <span class="n">300</span>, done)
+<span class="k">for</span> i := <span class="n">0</span>; i &lt; <span class="n">3</span>; i++ {
+    fmt.Println(&lt;-done) <span class="c">// 谁先完成谁先被打印</span>
+}` },
+  { id:"rust", name:"Rust", note:"tokio 是事实标准运行时；join! 同时推进多个协程。",
+    code:`<span class="c">// Cargo.toml: tokio = { version = "1", features = ["rt-multi-thread", "macros", "time"] }</span>
+<span class="k">async fn</span> <span class="t">work</span>(name: &amp;<span class="k">str</span>, ms: <span class="k">u64</span>) {
+    sleep(<span class="t">Duration</span>::from_millis(ms)).<span class="k">await</span>;
+    println!(<span class="s">"task {} finished"</span>, name);
+}
+
+<span class="t">tokio</span>::join!(work(<span class="s">"fast"</span>, <span class="n">10</span>), work(<span class="s">"medium"</span>, <span class="n">100</span>), work(<span class="s">"slow"</span>, <span class="n">300</span>));` },
+  { id:"cpp", name:"C++", note:"C++20 协程只有语法，标准库运行时缺席——退回线程池。",
+    code:`<span class="c">// 任务在线程里 sleep，完成顺序即输出顺序</span>
+<span class="k">auto</span> f = std::async(std::launch::async, [name, ms] {
+    std::this_thread::sleep_for(std::chrono::milliseconds(ms));
+    std::cout &lt;&lt; <span class="s">"task "</span> &lt;&lt; name &lt;&lt; <span class="s">" finished"</span> &lt;&lt; std::endl;
+});
+<span class="k">for</span> (<span class="k">auto</span>&amp; fut : futures) fut.get(); <span class="c">// 汇合</span>` },
+  { id:"java", name:"Java", note:"CompletableFuture 编排 + allOf 汇合；21 后推荐 CF + 虚拟线程。",
+    code:`<span class="k">static</span> <span class="t">CompletableFuture</span>&lt;<span class="t">Void</span>&gt; <span class="t">work</span>(<span class="t">String</span> name, <span class="k">int</span> ms) {
+    <span class="k">return</span> <span class="t">CompletableFuture</span>.runAsync(() -&gt; {
+        <span class="t">Thread</span>.sleep(ms);
+        <span class="t">System</span>.out.println(<span class="s">"task "</span> + name + <span class="s">" finished"</span>);
+    });
+}
+<span class="t">CompletableFuture</span>.allOf(work(<span class="s">"fast"</span>, <span class="n">10</span>), work(<span class="s">"medium"</span>, <span class="n">100</span>), work(<span class="s">"slow"</span>, <span class="n">300</span>)).join();` },
+];
+const tabs = document.getElementById("tabs");
+const codeEl = document.getElementById("code");
+const noteEl = document.getElementById("note");
+LANGS.forEach((l, i) => {
+  const b = document.createElement("button");
+  b.className = "tab" + (i === 0 ? " active" : "");
+  b.textContent = l.name;
+  b.onclick = () => {
+    document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+    b.classList.add("active");
+    codeEl.innerHTML = l.code; noteEl.textContent = l.note;
+  };
+  tabs.appendChild(b);
+});
+codeEl.innerHTML = LANGS[0].code;
+noteEl.textContent = LANGS[0].note;
+</script>
+</body>
+</html>

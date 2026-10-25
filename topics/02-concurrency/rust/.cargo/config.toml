@@ -1,0 +1,3 @@
+# 当前 Windows 环境会拒绝此示例的新生 gnullvm 可执行文件；GNU 目标已验证可正常运行。
+[build]
+target = "x86_64-pc-windows-gnu"

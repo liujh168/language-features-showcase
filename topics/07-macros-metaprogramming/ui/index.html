@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>主题 07：宏与元编程 · 六语言对比</title>
+<style>
+  :root { --bg:#0d1117; --panel:#161b22; --border:#30363d; --fg:#e6edf3; --muted:#8b949e; --accent:#58a6ff; --ok:#3fb950; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { background:var(--bg); color:var(--fg); font-family:"Segoe UI","Microsoft YaHei",sans-serif; line-height:1.7; }
+  .wrap { max-width:960px; margin:0 auto; padding:32px 20px 64px; }
+  a { color:var(--accent); text-decoration:none; }
+  .crumb { color:var(--muted); font-size:13px; margin-bottom:12px; }
+  h1 { font-size:26px; margin-bottom:4px; }
+  .sub { color:var(--muted); margin-bottom:24px; }
+  .card { background:var(--panel); border:1px solid var(--border); border-radius:10px; padding:20px; margin-bottom:20px; }
+  .card h2 { font-size:17px; margin-bottom:12px; color:var(--accent); }
+  .tabs { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px; }
+  .tab { padding:6px 16px; border-radius:20px; border:1px solid var(--border); background:transparent; color:var(--muted); cursor:pointer; font-size:14px; }
+  .tab.active { background:var(--accent); border-color:var(--accent); color:#0d1117; font-weight:600; }
+  pre { background:#0a0e14; border:1px solid var(--border); border-radius:8px; padding:16px; overflow-x:auto; font-family:Consolas,"Cascadia Code",monospace; font-size:13.5px; line-height:1.6; }
+  code .k { color:#ff7b72; } code .t { color:#79c0ff; } code .s { color:#a5d6ff; } code .c { color:#8b949e; font-style:italic; } code .n { color:#79c0ff; }
+  .note { color:var(--muted); font-size:14px; margin-bottom:12px; }
+  .run { border-left:3px solid var(--ok); }
+  .run .label { color:var(--ok); font-size:12px; letter-spacing:1px; margin-bottom:8px; }
+  .run pre { color:#7ee787; }
+  table { width:100%; border-collapse:collapse; font-size:13.5px; }
+  th,td { border:1px solid var(--border); padding:8px 10px; text-align:left; }
+  th { background:#1c2129; color:var(--accent); }
+  tr:nth-child(even) td { background:#141920; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="crumb"><a href="../../../viewer.html?file=README.md">← 返回总索引</a></div>
+  <h1>主题 07：宏与元编程 Macros &amp; Metaprogramming</h1>
+  <p class="sub">square(7) 小题大做，只为看清“谁在什么层面做代码变换” · 学习对比用</p>
+
+  <div class="card">
+    <h2>本题要做什么</h2>
+    <p class="note">计算并打印 square(7) 和 cube(3)。每个语言都动用自家最高阶的元编程设施（或展示它没有）。
+    六个语言输出<strong style="color:var(--fg)">逐字节一致</strong>。</p>
+  </div>
+
+  <div class="card">
+    <h2>代码对比（点击切换语言）</h2>
+    <div class="tabs" id="tabs"></div>
+    <p class="note" id="note"></p>
+    <pre><code id="code"></code></pre>
+    <div class="run" style="margin-top:14px;">
+      <div class="label">预期输出（六个语言逐字节一致）</div>
+      <pre>square(7) = 49
+cube(3) = 27</pre>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>元编程层次</h2>
+    <table>
+      <tr><th>语言</th><th>设施</th><th>变换层面</th></tr>
+      <tr><td>C++（原始）</td><td>#define 宏</td><td>纯文本替换，最危险</td></tr>
+      <tr><td>C++（现代）</td><td>模板 + constexpr</td><td>编译期，有类型，正道</td></tr>
+      <tr><td>Rust</td><td>macro_rules! / 过程宏</td><td>token 树，卫生宏</td></tr>
+      <tr><td>Python</td><td>装饰器 / 元类</td><td>运行期，函数类皆对象</td></tr>
+      <tr><td>Go</td><td>无宏（go:generate）</td><td>刻意反元编程</td></tr>
+      <tr><td>TS</td><td>无宏</td><td>元编程在类型层（类型体操）</td></tr>
+    </table>
+  </div>
+
+  <div class="card">
+    <h2>教学要点</h2>
+    <p class="note">1. C 宏经典坑：<code>SQUARE(a+b)</code> 展开成 <code>a+b*a+b</code>——文本替换不懂优先级，必须 <code>((x)*(x))</code>。<br>
+    2. Rust <code>$x:expr</code> 匹配的是语法单元，卫生宏不会意外捕获变量——文本宏的硬伤被根治。<br>
+    3. 运行期元编程（Python 装饰器）每次调用走包装层；编译期元编程零运行时成本。</p>
+  </div>
+</div>
+
+<script>
+const LANGS = [
+  { id:"rust", name:"Rust", note:"macro_rules! 操作 token 树（非文本）；$x:expr 匹配任意表达式，天然带括号语义。",
+    code:`macro_rules! square {
+    ($x:expr) =&gt; { $x * $x };  <span class="c">// expr = 任意表达式</span>
+}
+macro_rules! cube {
+    ($x:expr) =&gt; { $x * $x * $x };
+}
+
+<span class="k">fn</span> <span class="t">main</span>() {
+    println!(<span class="s">"square(7) = {}"</span>, square!(<span class="n">7</span>));
+    println!(<span class="s">"cube(3) = {}"</span>, cube!(<span class="n">3</span>));
+}` },
+  { id:"cpp", name:"C++", note:"两代元编程同框：#define 文本宏（危险）与 constexpr 编译期函数（正道）。",
+    code:`<span class="c">// 宏：参数必须加括号，否则 SQUARE(a+b) 变 a+b*a+b</span>
+<span class="k">#define</span> SQUARE(x) ((x) * (x))
+
+<span class="c">// constexpr：编译期求值，有类型检查，可调试</span>
+<span class="k">constexpr</span> <span class="k">int</span> <span class="t">cube</span>(<span class="k">int</span> x) { <span class="k">return</span> x * x * x; }
+
+static_assert(cube(<span class="n">3</span>) == <span class="n">27</span>, <span class="s">"compile-time check"</span>);
+
+std::cout &lt;&lt; <span class="s">"square(7) = "</span> &lt;&lt; SQUARE(<span class="n">7</span>) &lt;&lt; <span class="s">"\\n"</span>;
+std::cout &lt;&lt; <span class="s">"cube(3) = "</span> &lt;&lt; cube(<span class="n">3</span>) &lt;&lt; <span class="s">"\\n"</span>;` },
+  { id:"go", name:"Go", note:"反元编程设计：无宏无模板。官方只认 //go:generate 代码生成。",
+    code:`<span class="c">// Go：没有宏，这是刻意的语言设计决定。</span>
+<span class="c">// 官方认可的“元编程”只有 go:generate（调外部工具生成代码）。</span>
+
+<span class="k">func</span> <span class="t">square</span>(x <span class="k">int</span>) <span class="k">int</span> { <span class="k">return</span> x * x }
+<span class="k">func</span> <span class="t">cube</span>(x <span class="k">int</span>) <span class="k">int</span> { <span class="k">return</span> x * x * x }
+
+fmt.Println(<span class="s">"square(7) ="</span>, square(<span class="n">7</span>))
+fmt.Println(<span class="s">"cube(3) ="</span>, cube(<span class="n">3</span>))` },
+  { id:"python", name:"Python", note:"运行期元编程：装饰器就是高阶函数，import 时执行一次替换。",
+    code:`<span class="k">def</span> <span class="t">logged</span>(fn):
+    <span class="c">"""装饰器：返回包装函数，调用时走包装层。"""</span>
+    <span class="k">def</span> <span class="t">wrapper</span>(*args, **kwargs):
+        <span class="k">return</span> fn(*args, **kwargs)
+    <span class="k">return</span> wrapper
+
+<span class="k">@logged</span>  <span class="c"># 等价于 square = logged(square)</span>
+<span class="k">def</span> <span class="t">square</span>(x: <span class="k">int</span>) -&gt; <span class="k">int</span>:
+    <span class="k">return</span> x * x
+
+print(<span class="s">"square(7) ="</span>, square(<span class="n">7</span>))` },
+  { id:"ts", name:"TypeScript", note:"无宏（宏与类型系统天生相克）。TS 的元编程在类型层：泛型/映射类型/条件类型。",
+    code:`<span class="k">const</span> square = (x: <span class="k">number</span>): <span class="k">number</span> =&gt; x * x;
+<span class="k">const</span> cube = (x: <span class="k">number</span>): <span class="k">number</span> =&gt; x * x * x;
+
+<span class="c">// TS 真正的“元编程”在类型层，例如类型体操：</span>
+<span class="c">// type Square&lt;N extends number&gt; = ... （扩展练习）</span>
+
+console.log(<span class="s">"square(7) ="</span>, square(<span class="n">7</span>));
+console.log(<span class="s">"cube(3) ="</span>, cube(<span class="n">3</span>));` },
+  { id:"java", name:"Java", note:"无宏。运行期 = 反射 + 动态代理（只能代理接口）；编译期 = 注解处理（如 Lombok）。",
+    code:`<span class="c">// 函数须先包成接口才能被代理——函数非一等公民</span>
+<span class="k">interface</span> <span class="t">IntFn</span> { <span class="k">int</span> <span class="t">apply</span>(<span class="k">int</span> x); }
+
+<span class="k">static</span> <span class="t">IntFn</span> <span class="t">logged</span>(<span class="t">IntFn</span> fn) {
+    <span class="k">return</span> (<span class="t">IntFn</span>) <span class="t">Proxy</span>.newProxyInstance(...,
+        (p, m, a) -&gt; m.invoke(fn, a)); <span class="c">// 动态代理包装</span>
+}` },
+];
+const tabs = document.getElementById("tabs"), codeEl = document.getElementById("code"), noteEl = document.getElementById("note");
+LANGS.forEach((l, i) => {
+  const b = document.createElement("button");
+  b.className = "tab" + (i === 0 ? " active" : "");
+  b.textContent = l.name;
+  b.onclick = () => {
+    document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+    b.classList.add("active"); codeEl.innerHTML = l.code; noteEl.textContent = l.note;
+  };
+  tabs.appendChild(b);
+});
+codeEl.innerHTML = LANGS[0].code; noteEl.textContent = LANGS[0].note;
+</script>
+</body>
+</html>

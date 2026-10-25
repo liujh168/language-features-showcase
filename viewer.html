@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>文档查看器</title>
+<style>
+  :root { --bg:#0d1117; --panel:#161b22; --border:#30363d; --fg:#e6edf3; --muted:#8b949e; --accent:#58a6ff; --ok:#3fb950; }
+  * { box-sizing:border-box; }
+  body { background:var(--bg); color:var(--fg); font-family:"Segoe UI","Microsoft YaHei",sans-serif; line-height:1.8; margin:0; }
+  .wrap { max-width:900px; margin:0 auto; padding:32px 20px 64px; }
+  .crumb { font-size:13px; margin-bottom:20px; }
+  .crumb a { color:var(--accent); text-decoration:none; }
+  h1 { font-size:26px; border-bottom:1px solid var(--border); padding-bottom:10px; }
+  h2 { font-size:20px; margin-top:36px; border-bottom:1px solid var(--border); padding-bottom:6px; color:var(--accent); }
+  h3 { font-size:17px; margin-top:24px; }
+  p { margin:12px 0; }
+  code { background:#0a0e14; border:1px solid var(--border); border-radius:5px; padding:1px 7px; font-family:Consolas,monospace; font-size:13px; color:#a5d6ff; }
+  pre { background:#0a0e14; border:1px solid var(--border); border-radius:8px; padding:14px; overflow-x:auto; }
+  pre code { background:none; border:none; padding:0; }
+  table { width:100%; border-collapse:collapse; font-size:14px; margin:14px 0; }
+  th,td { border:1px solid var(--border); padding:8px 10px; text-align:left; }
+  th { background:#1c2129; color:var(--accent); }
+  tr:nth-child(even) td { background:#141920; }
+  a { color:var(--accent); }
+  blockquote { border-left:3px solid var(--accent); margin:14px 0; padding:6px 16px; color:var(--muted); background:var(--panel); border-radius:0 8px 8px 0; }
+  ul,ol { padding-left:26px; }
+  hr { border:none; border-top:1px solid var(--border); margin:28px 0; }
+  del { color:var(--muted); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="crumb"><a href="./">← 返回首页</a></div>
+  <div id="content"><p style="color:var(--muted)">加载中……</p></div>
+</div>
+<script>
+// 极简 Markdown 渲染器：支持本项目用到的语法子集
+// （标题/表格/代码块/行内代码/加粗/删除线/链接/列表/引用/分隔线）
+function esc(s) {
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+function inline(s) {
+  s = esc(s);
+  s = s.replace(/`([^`]+)`/g, '<code>$1</code>');
+  s = s.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
+  s = s.replace(/~~([^~]+)~~/g, "<del>$1</del>");
+  s = s.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (m, t, u) => {
+    // 相对路径的 .md 链接改走查看器，避免点开变成原始文本
+    if (u.endsWith(".md")) {
+      const rel = u.replace(/^(\.\.\/)+/, "").replace(/^\.\//, "");
+      return '<a href="viewer.html?file=' + encodeURIComponent(rel) + '">' + t + "</a>";
+    }
+    // 主题目录链接 → 直达该主题的 UI 展示页
+    if (/^topics\/[A-Za-z0-9_-]+\/$/.test(u)) {
+      return '<a href="' + u + 'ui/index.html">' + t + "</a>";
+    }
+    return '<a href="' + u + '">' + t + "</a>";
+  });
+  return s;
+}
+function render(md) {
+  const lines = md.split(/\r?\n/);
+  const out = [];
+  let i = 0;
+  while (i < lines.length) {
+    const L = lines[i];
+    if (/^```/.test(L)) {           // 代码块
+      const buf = [];
+      i++;
+      while (i < lines.length && !/^```/.test(lines[i])) buf.push(lines[i++]);
+      i++;
+      out.push("<pre><code>" + esc(buf.join("\n")) + "</code></pre>");
+      continue;
+    }
+    if (/^###\s/.test(L)) { out.push("<h3>" + inline(L.slice(4)) + "</h3>"); i++; continue; }
+    if (/^##\s/.test(L))  { out.push("<h2>" + inline(L.slice(3)) + "</h2>"); i++; continue; }
+    if (/^#\s/.test(L))   { out.push("<h1>" + inline(L.slice(2)) + "</h1>"); i++; continue; }
+    if (/^\s*---+\s*$/.test(L)) { out.push("<hr>"); i++; continue; }
+    if (/^>\s?/.test(L)) {
+      const buf = [];
+      while (i < lines.length && /^>\s?/.test(lines[i])) buf.push(inline(lines[i++].replace(/^>\s?/, "")));
+      out.push("<blockquote>" + buf.join("<br>") + "</blockquote>");
+      continue;
+    }
+    if (/^\|.*\|\s*$/.test(L) && /^\|[\s\-|:]+\|\s*$/.test(lines[i + 1] || "")) {   // 表格
+      const cells = (r) => r.trim().replace(/^\||\|$/g, "").split("|").map((c) => c.trim());
+      const head = cells(L);
+      i += 2;
+      const rows = [];
+      while (i < lines.length && /^\|.*\|\s*$/.test(lines[i])) rows.push(cells(lines[i++]));
+      out.push("<table><tr>" + head.map((h) => "<th>" + inline(h) + "</th>").join("") + "</tr>" +
+        rows.map((r) => "<tr>" + r.map((c) => "<td>" + inline(c) + "</td>").join("") + "</tr>").join("") + "</table>");
+      continue;
+    }
+    if (/^\s*[-*]\s+/.test(L)) {    // 无序列表
+      const buf = [];
+      while (i < lines.length && /^\s*[-*]\s+/.test(lines[i])) buf.push("<li>" + inline(lines[i++].replace(/^\s*[-*]\s+/, "")) + "</li>");
+      out.push("<ul>" + buf.join("") + "</ul>");
+      continue;
+    }
+    if (/^\s*\d+\.\s+/.test(L)) {  // 有序列表
+      const buf = [];
+      while (i < lines.length && /^\s*\d+\.\s+/.test(lines[i])) buf.push("<li>" + inline(lines[i++].replace(/^\s*\d+\.\s+/, "")) + "</li>");
+      out.push("<ol>" + buf.join("") + "</ol>");
+      continue;
+    }
+    if (L.trim() === "") { i++; continue; }
+    out.push("<p>" + inline(L) + "</p>");
+    i++;
+  }
+  return out.join("\n");
+}
+
+const file = new URLSearchParams(location.search).get("file") || "README.md";
+// 允许根目录下的子路径（如 topics/01-generics/README.md），禁止越出项目根
+if (!/^[A-Za-z0-9_.\/-]+$/.test(file) || file.includes("..") || !file.endsWith(".md")) {
+  document.getElementById("content").innerHTML = "<h1>非法文件</h1>";
+} else {
+  document.title = file + " · 文档查看器";
+  fetch(file)
+    .then((r) => { if (!r.ok) throw new Error(r.status); return r.text(); })
+    .then((md) => { document.getElementById("content").innerHTML = render(md); })
+    .catch((e) => {
+      document.getElementById("content").innerHTML = "<h1>加载失败</h1><p>无法读取 " + esc(file) + "（" + e.message + "）</p>";
+    });
+}
+</script>
+</body>
+</html>

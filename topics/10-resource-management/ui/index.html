@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>主题 10：资源管理 · 六语言对比</title>
+<style>
+  :root { --bg:#0d1117; --panel:#161b22; --border:#30363d; --fg:#e6edf3; --muted:#8b949e; --accent:#58a6ff; --ok:#3fb950; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { background:var(--bg); color:var(--fg); font-family:"Segoe UI","Microsoft YaHei",sans-serif; line-height:1.7; }
+  .wrap { max-width:960px; margin:0 auto; padding:32px 20px 64px; }
+  a { color:var(--accent); text-decoration:none; }
+  .crumb { color:var(--muted); font-size:13px; margin-bottom:12px; }
+  h1 { font-size:26px; margin-bottom:4px; }
+  .sub { color:var(--muted); margin-bottom:24px; }
+  .card { background:var(--panel); border:1px solid var(--border); border-radius:10px; padding:20px; margin-bottom:20px; }
+  .card h2 { font-size:17px; margin-bottom:12px; color:var(--accent); }
+  .tabs { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px; }
+  .tab { padding:6px 16px; border-radius:20px; border:1px solid var(--border); background:transparent; color:var(--muted); cursor:pointer; font-size:14px; }
+  .tab.active { background:var(--accent); border-color:var(--accent); color:#0d1117; font-weight:600; }
+  pre { background:#0a0e14; border:1px solid var(--border); border-radius:8px; padding:16px; overflow-x:auto; font-family:Consolas,"Cascadia Code",monospace; font-size:13.5px; line-height:1.6; }
+  code .k{color:#ff7b72;} code .t{color:#79c0ff;} code .s{color:#a5d6ff;} code .c{color:#8b949e;font-style:italic;} code .n{color:#79c0ff;}
+  .note { color:var(--muted); font-size:14px; margin-bottom:12px; }
+  .run { border-left:3px solid var(--ok); }
+  .run .label { color:var(--ok); font-size:12px; letter-spacing:1px; margin-bottom:8px; }
+  .run pre { color:#7ee787; }
+  table { width:100%; border-collapse:collapse; font-size:13.5px; }
+  th,td { border:1px solid var(--border); padding:8px 10px; text-align:left; }
+  th { background:#1c2129; color:var(--accent); }
+  tr:nth-child(even) td { background:#141920; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="crumb"><a href="../../../viewer.html?file=README.md">← 返回总索引</a></div>
+  <h1>主题 10：资源管理</h1>
+  <p class="sub">GC 语言 vs 非 GC 语言的资源观 · 缓冲区池归还练习</p>
+
+  <div class="card">
+    <h2>核心结论</h2>
+    <p class="note" style="font-size:15px;"><strong style="color:var(--fg)">GC 管内存，管不了资源。</strong>
+    连接、句柄、锁、缓冲区——所有稀缺资源在任何语言里都必须显式归还。finalizer 只配兜底，不配干活。</p>
+  </div>
+
+  <div class="card">
+    <h2>代码对比（点击切换语言）</h2>
+    <div class="tabs" id="tabs"></div>
+    <p class="note" id="note"></p>
+    <pre><code id="code"></code></pre>
+    <div class="run" style="margin-top:14px;">
+      <div class="label">预期输出（六语言逐字节一致）</div>
+      <pre>allocate buffer A
+allocate buffer B
+use A + B
+return A to pool
+return B to pool
+all buffers back in pool</pre>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>内存模型与归还机制</h2>
+    <table>
+      <tr><th>语言</th><th>内存模型</th><th>资源归还</th><th>确定性</th></tr>
+      <tr><td>C++</td><td>手动 + RAII</td><td>析构函数自动调</td><td>完全确定</td></tr>
+      <tr><td>Rust</td><td>所有权 + Drop</td><td>Drop 自动调</td><td>完全确定</td></tr>
+      <tr><td>Python</td><td>引用计数+循环GC</td><td><code>with</code> / close()</td><td>代码确定</td></tr>
+      <tr><td>Go</td><td>tracing GC</td><td>Close() / sync.Pool</td><td>代码确定</td></tr>
+      <tr><td>Java</td><td>tracing GC</td><td>try-with-resources</td><td>代码确定</td></tr>
+      <tr><td>TypeScript</td><td>tracing GC</td><td>dispose / using</td><td>代码确定</td></tr>
+    </table>
+  </div>
+</div>
+
+<script>
+const LANGS = [
+  { id:"cpp", name:"C++", note:"无 GC。RAII：构造获取、析构释放，编译器保证调用时机。",
+    code:`<span class="k">class</span> <span class="t">BufferPool</span> {
+<span class="k">public</span>:
+    std::string <span class="t">acquire</span>(<span class="k">char</span> name);  <span class="c">// 打印 allocate</span>
+    <span class="k">void</span> <span class="t">release</span>(<span class="k">const</span> std::string&amp; buf); <span class="c">// 打印 return</span>
+};
+<span class="c">// 谁申请谁归还，和 delete 同一条纪律</span>` },
+  { id:"rust", name:"Rust", note:"所有权自动 drop。工程上更地道的做法是 Guard 模式：获取即借出，离开作用域自动归还。",
+    code:`<span class="k">impl</span> <span class="t">BufferPool</span> {
+    <span class="k">fn</span> <span class="t">acquire</span>(&amp;<span class="k">self</span>, name: &amp;<span class="k">str</span>) -&gt; <span class="t">String</span> { <span class="c">/* 打印 allocate */</span> }
+    <span class="k">fn</span> <span class="t">release</span>(&amp;<span class="k">self</span>, buf: &amp;<span class="k">str</span>) { <span class="c">/* 打印 return */</span> }
+}
+<span class="c">// 无 GC：内存与资源都由所有权保证释放</span>` },
+  { id:"python", name:"Python", note:"引用计数的析构时机看似确定，但循环引用要等 GC——池化资源一律 with。",
+    code:`<span class="k">class</span> <span class="t">BufferPool</span>:
+    <span class="k">def</span> <span class="t">acquire</span>(self, name): <span class="c"># 打印 allocate</span>
+    <span class="k">def</span> <span class="t">release</span>(self, buf):  <span class="c"># 打印 return</span>
+<span class="c"># __del__ 不可靠，with 语句才是归还的正道</span>` },
+  { id:"go", name:"Go", note:"GC 自动收内存；sync.Pool / Close() 管资源归还。",
+    code:`<span class="k">type</span> <span class="t">BufferPool</span> <span class="k">struct</span>{}
+<span class="k">func</span> (<span class="t">BufferPool</span>) <span class="t">Acquire</span>(name <span class="k">string</span>) <span class="k">string</span> { <span class="c">/* 打印 allocate */</span> }
+<span class="k">func</span> (<span class="t">BufferPool</span>) <span class="t">Release</span>(buf <span class="k">string</span>)  { <span class="c">/* 打印 return */</span> }
+<span class="c">// 标准库以身作则：rows.Close()、resp.Body.Close()</span>` },
+  { id:"java", name:"Java", note:"JVM 的 tracing GC 时机不可控；try-with-resources 把资源释放拉回代码控制。",
+    code:`<span class="c">// finalize() 已被废弃——时机不可靠，只配兜底</span>
+<span class="k">try</span> (Resource r = ...) {   <span class="c">// try-with-resources</span>    ...
+} <span class="c">// 离开块自动 close()，等价 Python with / C++ RAII</span>` },
+  { id:"ts", name:"TypeScript", note:"JS 的 tracing GC 同 Java；资源归还靠 dispose 约定 / ES 新 using。",
+    code:`<span class="k">class</span> <span class="t">BufferPool</span> {
+  <span class="t">acquire</span>(name: <span class="k">string</span>): <span class="k">string</span> { <span class="c">/* 打印 allocate */</span> }
+  <span class="t">release</span>(buf: <span class="k">string</span>): <span class="k">void</span>   { <span class="c">/* 打印 return */</span> }
+}
+<span class="c">// 浏览器里更多是 clearTimeout / unsubscribe 这类“宿主资源”归还</span>` },
+];
+const tabs = document.getElementById("tabs");
+const codeEl = document.getElementById("code");
+const noteEl = document.getElementById("note");
+LANGS.forEach((l, i) => {
+  const b = document.createElement("button");
+  b.className = "tab" + (i === 0 ? " active" : "");
+  b.textContent = l.name;
+  b.onclick = () => {
+    document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+    b.classList.add("active");
+    codeEl.innerHTML = l.code; noteEl.textContent = l.note;
+  };
+  tabs.appendChild(b);
+});
+codeEl.innerHTML = LANGS[0].code;
+noteEl.textContent = LANGS[0].note;
+</script>
+</body>
+</html>

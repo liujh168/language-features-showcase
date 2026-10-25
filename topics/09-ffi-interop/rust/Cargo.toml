@@ -1,0 +1,8 @@
+[package]
+name = "ffi-demo"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "ffi_demo"
+path = "main.rs"

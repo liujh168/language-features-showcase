@@ -1,0 +1,8 @@
+[package]
+name = "iterators-demo"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "iterators_demo"
+path = "main.rs"

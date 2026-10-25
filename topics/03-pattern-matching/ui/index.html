@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>主题 03：模式匹配 · 六语言对比</title>
+<style>
+  :root { --bg:#0d1117; --panel:#161b22; --border:#30363d; --fg:#e6edf3; --muted:#8b949e; --accent:#58a6ff; --ok:#3fb950; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { background:var(--bg); color:var(--fg); font-family:"Segoe UI","Microsoft YaHei",sans-serif; line-height:1.7; }
+  .wrap { max-width:960px; margin:0 auto; padding:32px 20px 64px; }
+  a { color:var(--accent); text-decoration:none; }
+  .crumb { color:var(--muted); font-size:13px; margin-bottom:12px; }
+  h1 { font-size:26px; margin-bottom:4px; }
+  .sub { color:var(--muted); margin-bottom:24px; }
+  .card { background:var(--panel); border:1px solid var(--border); border-radius:10px; padding:20px; margin-bottom:20px; }
+  .card h2 { font-size:17px; margin-bottom:12px; color:var(--accent); }
+  .tabs { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px; }
+  .tab { padding:6px 16px; border-radius:20px; border:1px solid var(--border); background:transparent; color:var(--muted); cursor:pointer; font-size:14px; }
+  .tab.active { background:var(--accent); border-color:var(--accent); color:#0d1117; font-weight:600; }
+  pre { background:#0a0e14; border:1px solid var(--border); border-radius:8px; padding:16px; overflow-x:auto; font-family:Consolas,"Cascadia Code",monospace; font-size:13.5px; line-height:1.6; }
+  code .k { color:#ff7b72; } code .t { color:#79c0ff; } code .s { color:#a5d6ff; } code .c { color:#8b949e; font-style:italic; } code .n { color:#79c0ff; }
+  .note { color:var(--muted); font-size:14px; margin-bottom:12px; }
+  .run { border-left:3px solid var(--ok); }
+  .run .label { color:var(--ok); font-size:12px; letter-spacing:1px; margin-bottom:8px; }
+  .run pre { color:#7ee787; }
+  table { width:100%; border-collapse:collapse; font-size:13.5px; }
+  th,td { border:1px solid var(--border); padding:8px 10px; text-align:left; }
+  th { background:#1c2129; color:var(--accent); }
+  tr:nth-child(even) td { background:#141920; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="crumb"><a href="../../../viewer.html?file=README.md">← 返回总索引</a></div>
+  <h1>主题 03：模式匹配 Pattern Matching</h1>
+  <p class="sub">整数分类一道题，看清六种语言对“模式匹配”的态度 · 学习对比用</p>
+
+  <div class="card">
+    <h2>本题要做什么</h2>
+    <p class="note"><code>classify(n)</code>：0 → "zero"，1 → "one"，负数 → "negative"，偶数 → "even"，否则 "odd"。
+    对 0、1、-3、42、7 各调一次，六个语言输出<strong style="color:var(--fg)">逐字节一致</strong>。</p>
+  </div>
+
+  <div class="card">
+    <h2>代码对比（点击切换语言）</h2>
+    <div class="tabs" id="tabs"></div>
+    <p class="note" id="note"></p>
+    <pre><code id="code"></code></pre>
+    <div class="run" style="margin-top:14px;">
+      <div class="label">预期输出（六个语言逐字节一致）</div>
+      <pre>classify(0) = zero
+classify(1) = one
+classify(-3) = negative
+classify(42) = even
+classify(7) = odd</pre>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>差异速览</h2>
+    <table>
+      <tr><th>语言</th><th>现状</th><th>关键差异</th></tr>
+      <tr><td>Rust</td><td>match 王牌特性</td><td>可返回值；守卫；<b>编译器强制穷尽</b></td></tr>
+      <tr><td>Python</td><td>match-case（3.10+）</td><td>语法最像 Rust；但不强制穷尽</td></tr>
+      <tr><td>Go</td><td>无</td><td>无 tag switch = 带糖 if-else 链；默认不贯穿</td></tr>
+      <tr><td>C++</td><td>无（C++23/26 仍无）</td><td>现实就是 if-else 链；P1371 提案拉锯中</td></tr>
+      <tr><td>TS</td><td>无（TC39 提案阶段）</td><td>switch 离散值 + if 守卫</td></tr>
+    </table>
+  </div>
+
+  <div class="card">
+    <h2>教学要点</h2>
+    <p class="note">1. 模式匹配对<strong style="color:var(--fg)">值的形状</strong>解构（枚举/元组/结构体），条件分支只比布尔——本例只是守卫热身，Rust 换 enum 解构才是 match 真威。<br>
+    2. <strong style="color:var(--fg)">穷尽性检查是安全网</strong>：Rust 漏分支编译报错；别语言的 default 写不写全靠自觉。<br>
+    3. Go/C++ 社区长期拒绝模式匹配——“if-else 就够了”，这个争论本身值得读。</p>
+  </div>
+</div>
+
+<script>
+const LANGS = [
+  { id:"rust", name:"Rust", note:"表达式可返回值；守卫 n if ...；漏掉 _ 通配会编译报错（非穷尽检查）。",
+    code:`<span class="k">fn</span> <span class="t">classify</span>(n: <span class="k">i32</span>) -> &<span class="s">'static str</span> {
+    <span class="k">match</span> n {
+        <span class="n">0</span> => <span class="s">"zero"</span>,
+        <span class="n">1</span> => <span class="s">"one"</span>,
+        n <span class="k">if</span> n &lt; <span class="n">0</span> => <span class="s">"negative"</span>,  <span class="c">// 守卫</span>
+        n <span class="k">if</span> n % <span class="n">2</span> == <span class="n">0</span> => <span class="s">"even"</span>,
+        _ => <span class="s">"odd"</span>,      <span class="c">// 漏了它：编译错误！</span>
+    }
+}` },
+  { id:"python", name:"Python", note:"3.10+ 才有 match；语法最像 Rust，但漏了 case _ 不报错。",
+    code:`<span class="k">def</span> <span class="t">classify</span>(n: <span class="k">int</span>) -&gt; <span class="k">str</span>:
+    <span class="k">match</span> n:
+        <span class="k">case</span> <span class="n">0</span>: <span class="k">return</span> <span class="s">"zero"</span>
+        <span class="k">case</span> <span class="n">1</span>: <span class="k">return</span> <span class="s">"one"</span>
+        <span class="k">case</span> n <span class="k">if</span> n &lt; <span class="n">0</span>: <span class="k">return</span> <span class="s">"negative"</span>
+        <span class="k">case</span> n <span class="k">if</span> n % <span class="n">2</span> == <span class="n">0</span>: <span class="k">return</span> <span class="s">"even"</span>
+        <span class="k">case</span> _: <span class="k">return</span> <span class="s">"odd"</span>  <span class="c"># 通配兜底</span>` },
+  { id:"go", name:"Go", note:"没有模式匹配。无 tag switch 是惯用替代，默认不贯穿（无需 break）。",
+    code:`<span class="k">func</span> <span class="t">classify</span>(n <span class="k">int</span>) <span class="k">string</span> {
+    <span class="k">switch</span> {           <span class="c">// 无 tag = if-else 链的语法糖</span>
+    <span class="k">case</span> n == <span class="n">0</span>: <span class="k">return</span> <span class="s">"zero"</span>
+    <span class="k">case</span> n == <span class="n">1</span>: <span class="k">return</span> <span class="s">"one"</span>
+    <span class="k">case</span> n &lt; <span class="n">0</span>: <span class="k">return</span> <span class="s">"negative"</span>
+    <span class="k">case</span> n%<span class="n">2</span> == <span class="n">0</span>: <span class="k">return</span> <span class="s">"even"</span>
+    <span class="k">default</span>: <span class="k">return</span> <span class="s">"odd"</span>
+    }
+}` },
+  { id:"cpp", name:"C++", note:"至今没有模式匹配（P1371 提案拉锯多年）。现实代码 = if-else 链。",
+    code:`std::string_view <span class="t">classify</span>(<span class="k">int</span> n) {
+    <span class="k">if</span> (n == <span class="n">0</span>) <span class="k">return</span> <span class="s">"zero"</span>;
+    <span class="k">if</span> (n == <span class="n">1</span>) <span class="k">return</span> <span class="s">"one"</span>;
+    <span class="k">if</span> (n &lt; <span class="n">0</span>) <span class="k">return</span> <span class="s">"negative"</span>;
+    <span class="k">if</span> (n % <span class="n">2</span> == <span class="n">0</span>) <span class="k">return</span> <span class="s">"even"</span>;
+    <span class="k">return</span> <span class="s">"odd"</span>;  <span class="c">// 编译器不检查穷尽性</span>
+}` },
+  { id:"ts", name:"TypeScript", note:"无模式匹配（TC39 提案未落地）。switch 管离散值，守卫退回 if。",
+    code:`<span class="k">function</span> <span class="t">classify</span>(n: <span class="k">number</span>): <span class="k">string</span> {
+  <span class="k">switch</span> (n) {
+    <span class="k">case</span> <span class="n">0</span>: <span class="k">return</span> <span class="s">"zero"</span>;
+    <span class="k">case</span> <span class="n">1</span>: <span class="k">return</span> <span class="s">"one"</span>;
+  }
+  <span class="k">if</span> (n &lt; <span class="n">0</span>) <span class="k">return</span> <span class="s">"negative"</span>;
+  <span class="k">if</span> (n % <span class="n">2</span> === <span class="n">0</span>) <span class="k">return</span> <span class="s">"even"</span>;
+  <span class="k">return</span> <span class="s">"odd"</span>;
+}` },
+  { id:"java", name:"Java", note:"Java 21 正式支持（JEP 441）：类型模式 + when 守卫 + null 处理；default 必须写。",
+    code:`<span class="k">return switch</span> (n) {
+    <span class="k">case</span> <span class="n">0</span> -&gt; <span class="s">"zero"</span>;
+    <span class="k">case</span> <span class="n">1</span> -&gt; <span class="s">"one"</span>;
+    <span class="k">case</span> <span class="t">Integer</span> i <span class="k">when</span> i &lt; <span class="n">0</span> -&gt; <span class="s">"negative"</span>;
+    <span class="k">case</span> <span class="t">Integer</span> i <span class="k">when</span> i % <span class="n">2</span> == <span class="n">0</span> -&gt; <span class="s">"even"</span>;
+    <span class="k">default</span> -&gt; <span class="s">"odd"</span>; <span class="c">// default 必写</span>
+};` },
+];
+const tabs = document.getElementById("tabs"), codeEl = document.getElementById("code"), noteEl = document.getElementById("note");
+LANGS.forEach((l, i) => {
+  const b = document.createElement("button");
+  b.className = "tab" + (i === 0 ? " active" : "");
+  b.textContent = l.name;
+  b.onclick = () => {
+    document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+    b.classList.add("active"); codeEl.innerHTML = l.code; noteEl.textContent = l.note;
+  };
+  tabs.appendChild(b);
+});
+codeEl.innerHTML = LANGS[0].code; noteEl.textContent = LANGS[0].note;
+</script>
+</body>
+</html>

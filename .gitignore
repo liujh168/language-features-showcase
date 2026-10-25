@@ -1,0 +1,16 @@
+# 构建与校验产物
+.run-all-*/
+*.exe
+*.obj
+*.dll
+*.lib
+*.exp
+Main.h
+*.class
+target/
+__pycache__/
+node_modules/
+
+# 本机工具链配置（不提交私人安装路径）
+toolchains.local.json
+.toolchains/

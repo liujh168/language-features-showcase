@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>语言特性演示库 · 首页</title>
+<style>
+  :root { --bg:#0d1117; --panel:#161b22; --border:#30363d; --fg:#e6edf3; --muted:#8b949e; --accent:#58a6ff; --ok:#3fb950; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { background:var(--bg); color:var(--fg); font-family:"Segoe UI","Microsoft YaHei",sans-serif; line-height:1.7; }
+  .wrap { max-width:960px; margin:0 auto; padding:40px 20px 64px; }
+  h1 { font-size:28px; margin-bottom:6px; }
+  .sub { color:var(--muted); margin-bottom:8px; }
+  .badge { display:inline-block; background:#123d1e; color:var(--ok); border:1px solid #1f6f33; border-radius:12px; padding:2px 12px; font-size:13px; margin-bottom:28px; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:16px; }
+  .card { background:var(--panel); border:1px solid var(--border); border-radius:10px; padding:18px; display:block; color:var(--fg); text-decoration:none; transition:border-color .15s; }
+  .card:hover { border-color:var(--accent); }
+  .card .num { color:var(--accent); font-size:13px; font-weight:600; letter-spacing:1px; }
+  .card h2 { font-size:17px; margin:4px 0 8px; }
+  .card p { color:var(--muted); font-size:13.5px; }
+  .links { margin-top:24px; font-size:14px; color:var(--muted); }
+  .links a { color:var(--accent); text-decoration:none; margin-right:16px; }
+  .langs { margin-top:6px; font-size:12.5px; color:var(--muted); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>现代编程语言功能演示库</h1>
+  <p class="sub">同一道题，六种写法：C++ / Go / Rust / Python / TypeScript / Java 横向对比</p>
+  <span class="badge">12 个主题 · 6 语言 · 当前校验：58 通过 / 13 跳过（缺 C++ 工具链）</span>
+
+  <div class="grid">
+    <a class="card" href="topics/01-generics/ui/index.html"><span class="num">TOPIC 01</span><h2>泛型 Generics</h2><p>模板 / [T any] / trait bound / 鸭子类型 / 类型擦除</p><p class="langs">零依赖展示页 →</p></a>
+    <a class="card" href="topics/02-concurrency/ui/index.html"><span class="num">TOPIC 02</span><h2>并发模型 Concurrency</h2><p>goroutine / thread+mpsc / async+futures / 线程池 / 事件循环</p><p class="langs">零依赖展示页 →</p></a>
+    <a class="card" href="topics/03-pattern-matching/ui/index.html"><span class="num">TOPIC 03</span><h2>模式匹配 Pattern Matching</h2><p>match 强制穷尽；C++、Go、TS 无此特性，看替代写法</p><p class="langs">零依赖展示页 →</p></a>
+    <a class="card" href="topics/04-error-handling/ui/index.html"><span class="num">TOPIC 04</span><h2>错误处理 Error Handling</h2><p>Result / (T,error) 对撞 throw/raise——失败是否写在签名上</p><p class="langs">零依赖展示页 →</p></a>
+    <a class="card" href="topics/05-ownership-memory/ui/index.html"><span class="num">TOPIC 05</span><h2>所有权与内存 Ownership</h2><p>RAII/Drop 编译期强制 vs defer/with/finally GC 三档</p><p class="langs">零依赖展示页 →</p></a>
+    <a class="card" href="topics/06-iterators/ui/index.html"><span class="num">TOPIC 06</span><h2>迭代器与流 Iterators</h2><p>惰性光谱：ranges / 生成器 / 立即求值 / 显式循环</p><p class="langs">零依赖展示页 →</p></a>
+    <a class="card" href="topics/07-macros-metaprogramming/ui/index.html"><span class="num">TOPIC 07</span><h2>宏与元编程 Macros</h2><p>文本宏 / token 树宏 / 运行期装饰器 / 刻意没有</p><p class="langs">零依赖展示页 →</p></a>
+    <a class="card" href="topics/08-type-system/ui/index.html"><span class="num">TOPIC 08</span><h2>类型系统 Type System</h2><p>名义 vs 结构化 vs 鸭子类型，谁说了算</p><p class="langs">零依赖展示页 →</p></a>
+    <a class="card" href="topics/09-ffi-interop/ui/index.html"><span class="num">TOPIC 09</span><h2>FFI 与互操作</h2><p>跨语言调用：C ABI / cgo / JNI / ctypes / FFI</p><p class="langs">零依赖展示页 →</p></a>
+    <a class="card" href="topics/10-resource-management/ui/index.html"><span class="num">TOPIC 10</span><h2>资源管理与内存模型</h2><p>RAII、所有权、GC 与确定性清理的再对比</p><p class="langs">零依赖展示页 →</p></a>
+    <a class="card" href="topics/11-modules-encapsulation/ui/index.html"><span class="num">TOPIC 11</span><h2>模块与封装</h2><p>包管理、可见性规则与模块系统哲学</p><p class="langs">零依赖展示页 →</p></a>
+    <a class="card" href="topics/12-async-advanced/ui/index.html"><span class="num">TOPIC 12</span><h2>异步生态进阶</h2><p>tokio / goroutine / asyncio / 事件循环深入</p><p class="langs">零依赖展示页 →</p></a>
+  </div>
+
+  <p class="links">
+    <a href="viewer.html?file=README.md">总索引 README</a>
+    <a href="viewer.html?file=ROADMAP.md">改进计划 ROADMAP</a>
+  </p>
+</div>
+</body>
+</html>

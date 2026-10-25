@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>主题 06：迭代器与流 · 六语言对比</title>
+<style>
+  :root { --bg:#0d1117; --panel:#161b22; --border:#30363d; --fg:#e6edf3; --muted:#8b949e; --accent:#58a6ff; --ok:#3fb950; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { background:var(--bg); color:var(--fg); font-family:"Segoe UI","Microsoft YaHei",sans-serif; line-height:1.7; }
+  .wrap { max-width:960px; margin:0 auto; padding:32px 20px 64px; }
+  a { color:var(--accent); text-decoration:none; }
+  .crumb { color:var(--muted); font-size:13px; margin-bottom:12px; }
+  h1 { font-size:26px; margin-bottom:4px; }
+  .sub { color:var(--muted); margin-bottom:24px; }
+  .card { background:var(--panel); border:1px solid var(--border); border-radius:10px; padding:20px; margin-bottom:20px; }
+  .card h2 { font-size:17px; margin-bottom:12px; color:var(--accent); }
+  .tabs { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px; }
+  .tab { padding:6px 16px; border-radius:20px; border:1px solid var(--border); background:transparent; color:var(--muted); cursor:pointer; font-size:14px; }
+  .tab.active { background:var(--accent); border-color:var(--accent); color:#0d1117; font-weight:600; }
+  pre { background:#0a0e14; border:1px solid var(--border); border-radius:8px; padding:16px; overflow-x:auto; font-family:Consolas,"Cascadia Code",monospace; font-size:13.5px; line-height:1.6; }
+  code .k { color:#ff7b72; } code .t { color:#79c0ff; } code .s { color:#a5d6ff; } code .c { color:#8b949e; font-style:italic; } code .n { color:#79c0ff; }
+  .note { color:var(--muted); font-size:14px; margin-bottom:12px; }
+  .run { border-left:3px solid var(--ok); }
+  .run .label { color:var(--ok); font-size:12px; letter-spacing:1px; margin-bottom:8px; }
+  .run pre { color:#7ee787; }
+  table { width:100%; border-collapse:collapse; font-size:13.5px; }
+  th,td { border:1px solid var(--border); padding:8px 10px; text-align:left; }
+  th { background:#1c2129; color:var(--accent); }
+  tr:nth-child(even) td { background:#141920; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="crumb"><a href="../../../viewer.html?file=README.md">← 返回总索引</a></div>
+  <h1>主题 06：迭代器与流 Iterators</h1>
+  <p class="sub">一道筛偶乘十题，暴露六语言的“惰性光谱” · 学习对比用</p>
+
+  <div class="card">
+    <h2>本题要做什么</h2>
+    <p class="note">1..=10 筛偶数、乘 10，输出全量、前 3 个、总和。
+    重点在<strong style="color:var(--fg)">惰性</strong>：组合时不该产生中间集合，<code>take(3)</code> 只该算 3 个元素。
+    六个语言输出<strong style="color:var(--fg)">逐字节一致</strong>。</p>
+  </div>
+
+  <div class="card">
+    <h2>代码对比（点击切换语言）</h2>
+    <div class="tabs" id="tabs"></div>
+    <p class="note" id="note"></p>
+    <pre><code id="code"></code></pre>
+    <div class="run" style="margin-top:14px;">
+      <div class="label">预期输出（六个语言逐字节一致）</div>
+      <pre>evens doubled: 20 40 60 80 100
+first 3: 20 40 60
+sum = 300</pre>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>惰性光谱</h2>
+    <table>
+      <tr><th>语言</th><th>设施</th><th>惰性？</th></tr>
+      <tr><td>Rust</td><td>Iterator trait</td><td>✅ 全惰性，零成本抽象</td></tr>
+      <tr><td>C++20</td><td>Ranges（views::）</td><td>✅ 全惰性，管道语法</td></tr>
+      <tr><td>Python</td><td>生成器 / 生成器表达式</td><td>✅ 可选（() 惰性 [] 立即）</td></tr>
+      <tr><td>TS</td><td>数组方法 / function*</td><td>⚠️ 默认立即，惰性要显式写</td></tr>
+      <tr><td>Go</td><td>经典无（1.23+ 有 iter）</td><td>❌ 显式 for 循环是惯用法</td></tr>
+      <tr><td>Java</td><td>Stream</td><td>✅ 管道惰性，终端操作驱动</td></tr>
+    </table>
+  </div>
+
+  <div class="card">
+    <h2>教学要点</h2>
+    <p class="note">1. 惰性 = <strong style="color:var(--fg)">组合时不物化</strong>：Rust/C++ 的 take(3) 只算 3 个元素就停；TS 数组写法则全算完再截断。<br>
+    2. Go 的“缺失”是<strong style="color:var(--fg)">设计宣言</strong>：Rob Pike 认为显式循环更可读，惰性链式被视作“聪明过头”。<br>
+    3. sum = 300：20+40+60+80+100，六语言逐字节一致。</p>
+  </div>
+</div>
+
+<script>
+const LANGS = [
+  { id:"rust", name:"Rust", note:"filter/map 只搭管道，collect/sum/take 才驱动。编译后等价手写循环。",
+    code:`<span class="k">let</span> all: <span class="t">Vec</span>&lt;<span class="k">i32</span>&gt; = (<span class="n">1</span>..=<span class="n">10</span>)
+    .filter(|x| x % <span class="n">2</span> == <span class="n">0</span>)   <span class="c">// 惰性：不产生中间容器</span>
+    .map(|x| x * <span class="n">10</span>)
+    .collect();              <span class="c">// 消费迭代器，物化结果</span>
+
+<span class="k">let</span> first3: <span class="t">Vec</span>&lt;<span class="k">i32</span>&gt; = all.iter().take(<span class="n">3</span>).copied().collect();
+println!(<span class="s">"sum = {}"</span>, all.iter().sum::&lt;<span class="k">i32</span>&gt;());` },
+  { id:"cpp", name:"C++20", note:"Ranges 视图：管道只描述计算，赋给 vector 才真正执行。需 /std:c++20。",
+    code:`<span class="k">auto</span> pipeline = <span class="t">views</span>::iota(<span class="n">1</span>, <span class="n">11</span>)
+              | <span class="t">views</span>::filter([](<span class="k">int</span> x) { <span class="k">return</span> x % <span class="n">2</span> == <span class="n">0</span>; })
+              | <span class="t">views</span>::transform([](<span class="k">int</span> x) { <span class="k">return</span> x * <span class="n">10</span>; });
+
+std::vector&lt;<span class="k">int</span>&gt; all(pipeline.begin(), pipeline.end());  <span class="c">// 物化</span>
+<span class="k">for</span> (<span class="k">int</span> v : all | <span class="t">views</span>::take(<span class="n">3</span>)) { ... }    <span class="c">// 惰性取前 3</span>` },
+  { id:"python", name:"Python", note:"(x for ...) 生成器表达式惰性、[x for ...] 列表推导立即；islice 惰性截取。",
+    code:`<span class="k">from</span> itertools <span class="k">import</span> <span class="t">islice</span>
+
+<span class="k">def</span> <span class="t">evens_doubled</span>():
+    <span class="k">for</span> x <span class="k">in</span> <span class="k">range</span>(<span class="n">1</span>, <span class="n">11</span>):
+        <span class="k">if</span> x % <span class="n">2</span> == <span class="n">0</span>:
+            <span class="k">yield</span> x * <span class="n">10</span>   <span class="c"># yield：挂起/恢复函数状态</span>
+
+print(<span class="s">"evens doubled:"</span>, *evens_doubled())
+print(<span class="s">"first 3:"</span>, *islice(evens_doubled(), <span class="n">3</span>))
+print(<span class="s">"sum ="</span>, sum(evens_doubled()))` },
+  { id:"ts", name:"TypeScript", note:"数组 map/filter 每次物化新数组——数据量不大时简单直白比惰性更重要。",
+    code:`<span class="k">const</span> nums = <span class="t">Array</span>.from({ length: <span class="n">10</span> }, (_, i) =&gt; i + <span class="n">1</span>);
+<span class="k">const</span> evens = nums
+  .filter((x) =&gt; x % <span class="n">2</span> === <span class="n">0</span>)   <span class="c">// 立即求值：产生新数组</span>
+  .map((x) =&gt; x * <span class="n">10</span>);           <span class="c">// 又产生一个新数组</span>
+
+console.log(<span class="s">"evens doubled:"</span>, evens.join(<span class="s">" "</span>));
+console.log(<span class="s">"sum ="</span>, evens.reduce((a, b) =&gt; a + b, <span class="n">0</span>));` },
+  { id:"go", name:"Go", note:"经典 Go 无惰性管道——这是刻意设计：可读性优先于链式表达。1.23+ 有 iter 包。",
+    code:`<span class="k">func</span> <span class="t">evensDoubled</span>() []<span class="k">int</span> {
+    <span class="k">var</span> out []<span class="k">int</span>
+    <span class="k">for</span> x := <span class="n">1</span>; x &lt;= <span class="n">10</span>; x++ {
+        <span class="k">if</span> x%<span class="n">2</span> == <span class="n">0</span> {
+            out = <span class="k">append</span>(out, x*<span class="n">10</span>)
+        }
+    }
+    <span class="k">return</span> out   <span class="c">// 一个普通切片，没有魔法</span>
+}` },
+  { id:"java", name:"Java", note:"Stream API：惰性流水线，终端操作才求值；流只能消费一次（新手最大坑）。",
+    code:`<span class="t">IntStream</span>.rangeClosed(<span class="n">1</span>, <span class="n">10</span>)
+    .filter(x -&gt; x % <span class="n">2</span> == <span class="n">0</span>)
+    .map(x -&gt; x * <span class="n">10</span>)     <span class="c">// 惰性：不计算</span>
+    .limit(<span class="n">3</span>)                <span class="c">// 惰性</span>
+    .sum();                  <span class="c">// 终端操作：此刻才跑</span>
+<span class="c">// 流只能消费一次，复用抛 IllegalStateException</span>` },
+];
+const tabs = document.getElementById("tabs"), codeEl = document.getElementById("code"), noteEl = document.getElementById("note");
+LANGS.forEach((l, i) => {
+  const b = document.createElement("button");
+  b.className = "tab" + (i === 0 ? " active" : "");
+  b.textContent = l.name;
+  b.onclick = () => {
+    document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+    b.classList.add("active"); codeEl.innerHTML = l.code; noteEl.textContent = l.note;
+  };
+  tabs.appendChild(b);
+});
+codeEl.innerHTML = LANGS[0].code; noteEl.textContent = LANGS[0].note;
+</script>
+</body>
+</html>

@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>主题 11：模块与封装 · 六语言对比</title>
+<style>
+  :root { --bg:#0d1117; --panel:#161b22; --border:#30363d; --fg:#e6edf3; --muted:#8b949e; --accent:#58a6ff; --ok:#3fb950; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { background:var(--bg); color:var(--fg); font-family:"Segoe UI","Microsoft YaHei",sans-serif; line-height:1.7; }
+  .wrap { max-width:960px; margin:0 auto; padding:32px 20px 64px; }
+  a { color:var(--accent); text-decoration:none; }
+  .crumb { color:var(--muted); font-size:13px; margin-bottom:12px; }
+  h1 { font-size:26px; margin-bottom:4px; }
+  .sub { color:var(--muted); margin-bottom:24px; }
+  .card { background:var(--panel); border:1px solid var(--border); border-radius:10px; padding:20px; margin-bottom:20px; }
+  .card h2 { font-size:17px; margin-bottom:12px; color:var(--accent); }
+  .tabs { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px; }
+  .tab { padding:6px 16px; border-radius:20px; border:1px solid var(--border); background:transparent; color:var(--muted); cursor:pointer; font-size:14px; }
+  .tab.active { background:var(--accent); border-color:var(--accent); color:#0d1117; font-weight:600; }
+  pre { background:#0a0e14; border:1px solid var(--border); border-radius:8px; padding:16px; overflow-x:auto; font-family:Consolas,"Cascadia Code",monospace; font-size:13.5px; line-height:1.6; }
+  code .k{color:#ff7b72;} code .t{color:#79c0ff;} code .s{color:#a5d6ff;} code .c{color:#8b949e;font-style:italic;} code .n{color:#79c0ff;}
+  .note { color:var(--muted); font-size:14px; margin-bottom:12px; }
+  .run { border-left:3px solid var(--ok); }
+  .run .label { color:var(--ok); font-size:12px; letter-spacing:1px; margin-bottom:8px; }
+  .run pre { color:#7ee787; }
+  table { width:100%; border-collapse:collapse; font-size:13.5px; }
+  th,td { border:1px solid var(--border); padding:8px 10px; text-align:left; }
+  th { background:#1c2129; color:var(--accent); }
+  tr:nth-child(even) td { background:#141920; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="crumb"><a href="../../../viewer.html?file=README.md">← 返回总索引</a></div>
+  <h1>主题 11：模块与封装</h1>
+  <p class="sub">同一个 utils 模块，六种可见性机制 · 公开 API / 私有实现</p>
+
+  <div class="card">
+    <h2>本题要做什么</h2>
+    <ol style="padding-left:22px; color:var(--muted);">
+      <li>实现 <code>greet()</code> / <code>area()</code> / <code>makeUser()</code> 公开接口</li>
+      <li><code>decorate()</code> 内部实现必须对使用者不可见</li>
+      <li><code>User</code> 的内部字段外部不可直接访问</li>
+    </ol>
+  </div>
+
+  <div class="card">
+    <h2>代码对比（点击切换语言）</h2>
+    <div class="tabs" id="tabs"></div>
+    <p class="note" id="note"></p>
+    <pre><code id="code"></code></pre>
+    <div class="run" style="margin-top:14px;">
+      <div class="label">预期输出（六语言逐字节一致）</div>
+      <pre>utils.greet() = hello from utils
+area(3, 4) = 12
+makeUser("ada") = User(name=ada)</pre>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>可见性机制速览</h2>
+    <table>
+      <tr><th>语言</th><th>“私有”表达</th><th>默认</th><th>哲学</th></tr>
+      <tr><td>C++</td><td>匿名 namespace / static / private</td><td>public</td><td>靠链接器物理隔离</td></tr>
+      <tr><td>Go</td><td>首字母小写</td><td>私有</td><td>极简，读代码即知边界</td></tr>
+      <tr><td>Rust</td><td>mod + pub 标记</td><td>私有</td><td>最保守，默认隐藏</td></tr>
+      <tr><td>Python</td><td>_下划线约定</td><td>公开</td><td>君子协定</td></tr>
+      <tr><td>Java</td><td>private / 包私有</td><td>包私有</td><td>四级访问控制</td></tr>
+      <tr><td>TypeScript</td><td>private / #</td><td>public</td><td># 是运行期原生私有</td></tr>
+    </table>
+  </div>
+</div>
+
+<script>
+const LANGS = [
+  { id:"cpp", name:"C++", note:"匿名命名空间 = 文件级私有，符号不进符号表。",
+    code:`<span class="k">namespace</span> <span class="t">utils</span> {
+<span class="k">namespace</span> {  <span class="c">// 匿名命名空间：仅本文件可见</span>
+    std::string <span class="t">decorate</span>(<span class="k">const</span> std::string&amp; s) { <span class="k">return</span> s + <span class="s">" from utils"</span>; }
+}
+<span class="k">public</span>:
+    std::string <span class="t">greet</span>() { <span class="k">return</span> decorate(<span class="s">"hello"</span>); }
+    <span class="k">class</span> <span class="t">User</span> {
+        <span class="k">friend</span> std::ostream&amp; <span class="k">operator</span>&lt;&lt;(...); <span class="c">// 友元破例访问私有</span>
+    <span class="k">private</span>:
+        std::string name_;
+    };
+}` },
+  { id:"go", name:"Go", note:"大小写即可见性，无关键字。",
+    code:`<span class="c">// 小写 = 包私有（模块外不存在）</span>
+<span class="k">func</span> <span class="t">decorate</span>(s <span class="k">string</span>) <span class="k">string</span> { <span class="k">return</span> s + <span class="s">" from utils"</span> }
+
+<span class="c">// 大写 = 公开 API</span>
+<span class="k">func</span> <span class="t">Greet</span>() <span class="k">string</span> { <span class="k">return</span> decorate(<span class="s">"hello"</span>) }
+
+<span class="k">type</span> <span class="t">User</span> <span class="k">struct</span> {
+    name <span class="k">string</span> <span class="c">// 小写字段：外部只能经 MakeUser/方法访问</span>
+}` },
+  { id:"rust", name:"Rust", note:"默认私有，显式 pub 才公开——与 Go 相反方向的保守。",
+    code:`<span class="k">mod</span> <span class="t">utils</span> {
+    <span class="k">fn</span> <span class="t">decorate</span>(s: &amp;<span class="k">str</span>) -&gt; <span class="t">String</span> { ... } <span class="c">// 私有</span>
+
+    <span class="k">pub fn</span> <span class="t">greet</span>() -&gt; <span class="t">String</span> { decorate(<span class="s">"hello"</span>) }
+
+    <span class="k">pub struct</span> <span class="t">User</span> {
+        name: <span class="t">String</span>, <span class="c">// 字段私有 = 封装</span>
+    }
+    <span class="k">impl</span> <span class="t">User</span> {
+        <span class="k">pub fn</span> <span class="t">name</span>(&amp;<span class="k">self</span>) -&gt; &amp;<span class="k">str</span> { &amp;<span class="k">self</span>.name }
+    }
+}` },
+  { id:"python", name:"Python", note:"下划线约定 + __all__，强制力来自社区与类型检查器。",
+    code:`<span class="k">def</span> <span class="t">_decorate</span>(s: <span class="k">str</span>) -&gt; <span class="k">str</span>:
+    <span class="k">return</span> s + <span class="s">" from utils"</span>  <span class="c"># 单下划线 = 内部实现</span>
+
+<span class="k">def</span> <span class="t">greet</span>() -&gt; <span class="k">str</span>:
+    <span class="k">return</span> _decorate(<span class="s">"hello"</span>)  <span class="c"># 公开接口</span>
+
+<span class="k">class</span> <span class="t">User</span>:
+    <span class="k">def</span> <span class="t">__init__</span>(self, name: <span class="k">str</span>):
+        self._name = name  <span class="c"># “私有”字段（约定）</span>` },
+  { id:"java", name:"Java", note:"四级可见性 + record 数据类（Java 16+）。",
+    code:`<span class="c">// record：自动生成构造器/访问器/toString 的不可变数据类</span>
+<span class="k">record</span> <span class="t">User</span>(<span class="t">String</span> name) { ... }
+
+<span class="k">class</span> <span class="t">Utils</span> {
+    <span class="k">private static</span> <span class="t">String</span> <span class="t">decorate</span>(<span class="t">String</span> s) { ... } <span class="c">// 私有</span>
+
+    <span class="k">public static</span> <span class="t">String</span> <span class="t">greet</span>() { <span class="k">return</span> decorate(<span class="s">"hello"</span>); }
+    <span class="k">public static</span> <span class="k">int</span> <span class="t">area</span>(<span class="k">int</span> w, <span class="k">int</span> h) { <span class="k">return</span> w * h; }
+}` },
+  { id:"ts", name:"TypeScript", note:"interface 定契约，# 私有字段运行期原生不可见。",
+    code:`<span class="k">interface</span> <span class="t">Greeter</span> { greet(): <span class="k">string</span>; }
+
+<span class="k">function</span> <span class="t">decorate</span>(s: <span class="k">string</k>): <span class="k">string</span> { ... } <span class="c">// 不导出 = 私有</span>
+
+<span class="k">class</span> <span class="t">User</span> {
+  #name: <span class="k">string</span>;  <span class="c">// # = JS 原生私有字段</span>
+  <span class="k">constructor</span>(name: <span class="k">string</span>) { <span class="k">this</span>.#name = name; }
+}` },
+];
+const tabs = document.getElementById("tabs");
+const codeEl = document.getElementById("code");
+const noteEl = document.getElementById("note");
+LANGS.forEach((l, i) => {
+  const b = document.createElement("button");
+  b.className = "tab" + (i === 0 ? " active" : "");
+  b.textContent = l.name;
+  b.onclick = () => {
+    document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+    b.classList.add("active");
+    codeEl.innerHTML = l.code; noteEl.textContent = l.note;
+  };
+  tabs.appendChild(b);
+});
+codeEl.innerHTML = LANGS[0].code;
+noteEl.textContent = LANGS[0].note;
+</script>
+</body>
+</html>

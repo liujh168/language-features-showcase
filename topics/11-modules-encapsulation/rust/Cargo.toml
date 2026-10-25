@@ -1,0 +1,8 @@
+[package]
+name = "modules-demo"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "modules_demo"
+path = "main.rs"

@@ -1,0 +1,14 @@
+{
+  "name": "language-features-showcase",
+  "version": "1.0.0",
+  "private": true,
+  "description": "现代编程语言功能演示库：12 主题 × 6 语言对比学习",
+  "scripts": {
+    "dev": "node server.js",
+    "test": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\run-all.ps1",
+    "test:all": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\run-all.ps1 -RequireAll"
+  },
+  "devDependencies": {
+    "tsx": "4.23.15"
+  }
+}

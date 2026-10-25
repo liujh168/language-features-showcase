@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>主题 05：所有权与内存 · 六语言对比</title>
+<style>
+  :root { --bg:#0d1117; --panel:#161b22; --border:#30363d; --fg:#e6edf3; --muted:#8b949e; --accent:#58a6ff; --ok:#3fb950; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { background:var(--bg); color:var(--fg); font-family:"Segoe UI","Microsoft YaHei",sans-serif; line-height:1.7; }
+  .wrap { max-width:960px; margin:0 auto; padding:32px 20px 64px; }
+  a { color:var(--accent); text-decoration:none; }
+  .crumb { color:var(--muted); font-size:13px; margin-bottom:12px; }
+  h1 { font-size:26px; margin-bottom:4px; }
+  .sub { color:var(--muted); margin-bottom:24px; }
+  .card { background:var(--panel); border:1px solid var(--border); border-radius:10px; padding:20px; margin-bottom:20px; }
+  .card h2 { font-size:17px; margin-bottom:12px; color:var(--accent); }
+  .tabs { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px; }
+  .tab { padding:6px 16px; border-radius:20px; border:1px solid var(--border); background:transparent; color:var(--muted); cursor:pointer; font-size:14px; }
+  .tab.active { background:var(--accent); border-color:var(--accent); color:#0d1117; font-weight:600; }
+  pre { background:#0a0e14; border:1px solid var(--border); border-radius:8px; padding:16px; overflow-x:auto; font-family:Consolas,"Cascadia Code",monospace; font-size:13.5px; line-height:1.6; }
+  code .k { color:#ff7b72; } code .t { color:#79c0ff; } code .s { color:#a5d6ff; } code .c { color:#8b949e; font-style:italic; } code .n { color:#79c0ff; }
+  .note { color:var(--muted); font-size:14px; margin-bottom:12px; }
+  .run { border-left:3px solid var(--ok); }
+  .run .label { color:var(--ok); font-size:12px; letter-spacing:1px; margin-bottom:8px; }
+  .run pre { color:#7ee787; }
+  table { width:100%; border-collapse:collapse; font-size:13.5px; }
+  th,td { border:1px solid var(--border); padding:8px 10px; text-align:left; }
+  th { background:#1c2129; color:var(--accent); }
+  tr:nth-child(even) td { background:#141920; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="crumb"><a href="../../../viewer.html?file=README.md">← 返回总索引</a></div>
+  <h1>主题 05：所有权与内存 Ownership &amp; Memory</h1>
+  <p class="sub">资源生命周期管理——唯一一个六语言答案本质不同的主题 · 学习对比用</p>
+
+  <div class="card">
+    <h2>本题要做什么</h2>
+    <p class="note">资源对象：创建即 acquire，使用，<strong style="color:var(--fg)">离开作用域时必定 release</strong>（无论是否异常），最后打印 done。
+    六个语言输出<strong style="color:var(--fg)">逐字节一致</strong>，但机制天差地别。</p>
+  </div>
+
+  <div class="card">
+    <h2>代码对比（点击切换语言）</h2>
+    <div class="tabs" id="tabs"></div>
+    <p class="note" id="note"></p>
+    <pre><code id="code"></code></pre>
+    <div class="run" style="margin-top:14px;">
+      <div class="label">预期输出（六个语言逐字节一致）</div>
+      <pre>acquire resource #1
+use resource #1
+release resource #1
+done</pre>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>差异速览</h2>
+    <table>
+      <tr><th>语言</th><th>内存哲学</th><th>确定性释放机制</th><th>释放时机</th></tr>
+      <tr><td>Rust</td><td>所有权（编译期强制）</td><td>Drop trait</td><td>作用域结束，编译器保证</td></tr>
+      <tr><td>C++</td><td>RAII（程序员自觉）</td><td>析构函数</td><td>作用域结束，自觉保证</td></tr>
+      <tr><td>Go</td><td>GC</td><td>defer</td><td>函数退出时（LIFO）</td></tr>
+      <tr><td>Python</td><td>GC</td><td>with 上下文管理器</td><td>with 块结束（任意块级）</td></tr>
+      <tr><td>TS</td><td>GC</td><td>try-finally（手动）</td><td>finally 块，全靠自己写</td></tr>
+    </table>
+  </div>
+
+  <div class="card">
+    <h2>教学要点</h2>
+    <p class="note">1. <strong style="color:var(--fg)">GC ≠ 释放不可控</strong>：文件句柄、锁、连接不该等 GC，六种语言都有确定性清理机制。<br>
+    2. Rust 所有权 = RAII + 编译期强制：Drop 就是析构函数，但 move 语义消灭了 C++ 的拷贝陷阱（double free 编译期就是错）。<br>
+    3. defer 在<strong style="color:var(--fg)">函数级</strong>作用域；with 是任意块级且语法最干净；JS 最原始——背后是“对象死亡时间语言拒绝承诺”的设计。</p>
+  </div>
+</div>
+
+<script>
+const LANGS = [
+  { id:"rust", name:"Rust", note:"Drop trait = 析构函数；释放时机编译期确定，所有权规则强制正确性。",
+    code:`<span class="k">struct</span> <span class="t">Resource</span> { id: <span class="k">i32</span> }
+
+<span class="k">impl</span> <span class="t">Drop</span> <span class="k">for</span> <span class="t">Resource</span> {
+    <span class="k">fn</span> drop(&<span class="k">mut</span> <span class="k">self</span>) {
+        println!(<span class="s">"release resource #{}"</span>, <span class="k">self</span>.id);
+    }
+}
+
+<span class="k">fn</span> <span class="t">use_it</span>() {
+    <span class="k">let</span> _r = <span class="t">Resource</span>::new(<span class="n">1</span>);
+    println!(<span class="s">"use resource #1"</span>);
+}  <span class="c">// &lt;- _r 在此释放，编译器保证，无需手写</span>` },
+  { id:"cpp", name:"C++", note:"RAII 惯用法：析构绑定作用域。正确性靠程序员自觉（拷贝资源句柄就 double free）。",
+    code:`<span class="k">class</span> <span class="t">Resource</span> {
+<span class="k">public</span>:
+    <span class="k">explicit</span> <span class="t">Resource</span>(<span class="k">int</span> id) : id_(id) {
+        std::cout &lt;&lt; <span class="s">"acquire resource #"</span> &lt;&lt; id_ &lt;&lt; <span class="s">"\\n"</span>;
+    }
+    ~<span class="t">Resource</span>() {  <span class="c">// 析构函数 = 确定性清理点</span>
+        std::cout &lt;&lt; <span class="s">"release resource #"</span> &lt;&lt; id_ &lt;&lt; <span class="s">"\\n"</span>;
+    }
+<span class="k">private</span>:
+    <span class="k">int</span> id_;
+};
+
+<span class="k">void</span> <span class="t">useIt</span>() {
+    <span class="t">Resource</span> r(<span class="n">1</span>);  <span class="c">// 栈对象：离开作用域必然析构</span>
+    std::cout &lt;&lt; <span class="s">"use resource #1\\n"</span>;
+}  <span class="c">// &lt;- ~Resource() 在此执行</span>` },
+  { id:"go", name:"Go", note:"GC 管内存，defer 管确定性清理——函数退出时按 LIFO 执行。",
+    code:`<span class="k">func</span> <span class="t">acquire</span>(id <span class="k">int</span>) <span class="k">func</span>() {
+    fmt.Printf(<span class="s">"acquire resource #%d\\n"</span>, id)
+    <span class="k">return func</span>() { fmt.Printf(<span class="s">"release resource #%d\\n"</span>, id) }
+}
+
+<span class="k">func</span> <span class="t">useIt</span>() {
+    release := acquire(<span class="n">1</span>)
+    <span class="k">defer</span> release()  <span class="c">// 函数退出时执行，无论是否 panic</span>
+    fmt.Println(<span class="s">"use resource #1"</span>)
+}  <span class="c">// &lt;- release() 在此执行</span>` },
+  { id:"python", name:"Python", note:"GC 管内存，with 块保证确定性清理——__exit__ 无论是否异常都会执行。",
+    code:`<span class="k">class</span> <span class="t">Resource</span>:
+    <span class="k">def</span> <span class="t">__enter__</span>(self):
+        print(<span class="s">f"acquire resource #{self.rid}"</span>)
+        <span class="k">return</span> self
+    <span class="k">def</span> <span class="t">__exit__</span>(self, *exc):
+        print(<span class="s">f"release resource #{self.rid}"</span>)
+
+<span class="k">with</span> <span class="t">Resource</span>(<span class="n">1</span>) <span class="k">as</span> r:
+    print(<span class="s">f"use resource #{r.rid}"</span>)
+<span class="c"># &lt;- 离开 with 块必定 release</span>` },
+  { id:"ts", name:"TypeScript", note:"GC 语言 + 无析构函数：确定性清理 = 手动 close + try-finally，最原始的 RAII 模拟。",
+    code:`<span class="k">const</span> r = <span class="k">new</span> <span class="t">Resource</span>(<span class="n">1</span>);
+r.acquire();
+<span class="k">try</span> {
+  console.log(<span class="s">"use resource #1"</span>);
+} <span class="k">finally</span> {
+  r.release();  <span class="c">// 无论是否异常都会执行</span>
+}
+console.log(<span class="s">"done"</span>);
+<span class="c">// JS 的“对象何时死亡由 GC 决定，语言拒绝承诺”</span>` },
+  { id:"java", name:"Java", note:"GC 无析构时机保证；确定性清理 = try-with-resources（AutoCloseable），等价 with/RAII。",
+    code:`<span class="k">class</span> <span class="t">Resource</span> <span class="k">implements</span> <span class="t">AutoCloseable</span> {
+    <span class="k">public void</span> <span class="t">close</span>() {
+        <span class="t">System</span>.out.println(<span class="s">"release resource #"</span> + rid);
+    }
+}
+<span class="k">try</span> (<span class="t">Resource</span> r = <span class="k">new</span> <span class="t">Resource</span>(<span class="n">1</span>)) {
+    <span class="c">// 离开块自动 close，抛异常也保证执行</span>
+}` },
+];
+const tabs = document.getElementById("tabs"), codeEl = document.getElementById("code"), noteEl = document.getElementById("note");
+LANGS.forEach((l, i) => {
+  const b = document.createElement("button");
+  b.className = "tab" + (i === 0 ? " active" : "");
+  b.textContent = l.name;
+  b.onclick = () => {
+    document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+    b.classList.add("active"); codeEl.innerHTML = l.code; noteEl.textContent = l.note;
+  };
+  tabs.appendChild(b);
+});
+codeEl.innerHTML = LANGS[0].code; noteEl.textContent = LANGS[0].note;
+</script>
+</body>
+</html>

@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>主题 01：泛型 Generics · 六语言对比</title>
+<style>
+  :root {
+    --bg: #0d1117; --panel: #161b22; --border: #30363d;
+    --fg: #e6edf3; --muted: #8b949e; --accent: #58a6ff; --ok: #3fb950;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--fg); font-family: "Segoe UI", "Microsoft YaHei", sans-serif; line-height: 1.7; }
+  .wrap { max-width: 960px; margin: 0 auto; padding: 32px 20px 64px; }
+  a { color: var(--accent); text-decoration: none; }
+  .crumb { color: var(--muted); font-size: 13px; margin-bottom: 12px; }
+  h1 { font-size: 26px; margin-bottom: 4px; }
+  .sub { color: var(--muted); margin-bottom: 24px; }
+  .card { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 20px; margin-bottom: 20px; }
+  .card h2 { font-size: 17px; margin-bottom: 12px; color: var(--accent); }
+  .tabs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+  .tab { padding: 6px 16px; border-radius: 20px; border: 1px solid var(--border); background: transparent; color: var(--muted); cursor: pointer; font-size: 14px; }
+  .tab.active { background: var(--accent); border-color: var(--accent); color: #0d1117; font-weight: 600; }
+  pre { background: #0a0e14; border: 1px solid var(--border); border-radius: 8px; padding: 16px; overflow-x: auto; font-family: Consolas, "Cascadia Code", monospace; font-size: 13.5px; line-height: 1.6; }
+  code .k { color: #ff7b72; } code .t { color: #79c0ff; } code .s { color: #a5d6ff; } code .c { color: #8b949e; font-style: italic; } code .n { color: #79c0ff; }
+  .note { color: var(--muted); font-size: 14px; margin-bottom: 12px; }
+  .run { border-left: 3px solid var(--ok); }
+  .run .label { color: var(--ok); font-size: 12px; letter-spacing: 1px; margin-bottom: 8px; }
+  .run pre { color: #7ee787; }
+  table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+  th, td { border: 1px solid var(--border); padding: 8px 10px; text-align: left; }
+  th { background: #1c2129; color: var(--accent); }
+  tr:nth-child(even) td { background: #141920; }
+  .local { color: var(--fg); }
+  @media (max-width: 600px) { .wrap { padding: 20px 12px; } h1 { font-size: 21px; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="crumb"><a href="../../../viewer.html?file=README.md">← 返回总索引</a></div>
+  <h1>主题 01：泛型 Generics</h1>
+  <p class="sub">同一道题（泛型 Box 容器 + 取首元素函数）在六种语言中的写法 · 学习对比用</p>
+
+  <div class="card">
+    <h2>本题要做什么</h2>
+    <ol style="padding-left: 22px; color: var(--muted);">
+      <li>定义泛型容器 <code>Box&lt;T&gt;</code>：装入任意类型的值、取出、<code>map</code> 变换成另一种类型</li>
+      <li>定义泛型函数 <code>first</code>：取列表第一个元素</li>
+      <li>输出四行结果，六种语言<strong style="color:var(--fg)">完全一致</strong> —— 差异全在语法与类型系统</li>
+    </ol>
+  </div>
+
+  <div class="card">
+    <h2>代码对比（点击切换语言）</h2>
+    <div class="tabs" id="tabs"></div>
+    <p class="note" id="note"></p>
+    <pre><code id="code"></code></pre>
+    <div class="run" style="margin-top:14px;">
+      <div class="label">预期输出（六个语言逐字节一致）</div>
+      <pre>int box: 42
+str box: hello
+first of [10, 20, 30] = 10
+doubled 21 -&gt; 42</pre>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>差异速览</h2>
+    <table>
+      <tr><th>维度</th><th>C++</th><th>Go</th><th>Rust</th><th>Python</th><th>TypeScript</th></tr>
+      <tr><td>语法</td><td><code>template&lt;typename T&gt;</code></td><td><code>[T any]</code></td><td><code>&lt;T&gt;</code> + trait bound</td><td><code>TypeVar</code> / <code>Generic[T]</code></td><td><code>&lt;T&gt;</code> + <code>extends</code></td></tr>
+      <tr><td>约束机制</td><td>Concepts（C++20）</td><td>constraint 接口</td><td>trait bound</td><td>无（仅注解）</td><td>extends 子句</td></tr>
+      <tr><td>实现方式</td><td>编译期实例化</td><td>编译期实例化/字典</td><td>单态化</td><td>无（动态）</td><td>编译期擦除</td></tr>
+      <tr><td>运行时开销</td><td>零</td><td>零/小</td><td>零</td><td>解释执行</td><td>零（类型消失）</td></tr>
+    </table>
+  </div>
+
+  <div class="card">
+    <h2>本页局限</h2>
+    <p class="note">本页是<strong style="color:var(--fg)">零依赖静态页</strong>：代码与输出是离线嵌入的，方便直接阅读对比。
+    想真正动手跑，到各语言目录下按源码注释运行；或执行根目录 <code>scripts\run-all.ps1</code> 一键验证。
+    后续主题计划加入「浏览器内真跑 TS/Python（Pyodide）」的在线执行区，见 ROADMAP。</p>
+  </div>
+</div>
+
+<script>
+const LANGS = [
+  { id: "cpp", name: "C++", note: "模板：编译期实例化，零运行时开销。最灵活也最不设防，Concepts 到 C++20 才补齐约束。",
+    code: `<span class="c">// template 声明类型参数；decltype 推导 lambda 返回类型</span>
+<span class="k">template</span> &lt;<span class="k">typename</span> <span class="t">T</span>&gt;
+<span class="k">class</span> <span class="t">Box</span> {
+<span class="k">public</span>:
+    <span class="k">explicit</span> <span class="t">Box</span>(<span class="t">T</span> value) : value_(std::move(value)) {}
+    <span class="k">const</span> <span class="t">T</span>&amp; get() <span class="k">const</span> { <span class="k">return</span> value_; }
+    <span class="k">template</span> &lt;<span class="k">typename</span> <span class="t">F</span>&gt;
+    <span class="k">auto</span> map(<span class="t">F</span> f) <span class="k">const</span> {
+        <span class="k">return</span> <span class="t">Box</span>&lt;<span class="k">decltype</span>(f(value_))&gt;(f(value_));
+    }
+<span class="k">private</span>:
+    <span class="t">T</span> value_;
+};
+
+<span class="k">template</span> &lt;<span class="k">typename</span> <span class="t">T</span>&gt;
+<span class="t">T</span> first(<span class="k">const</span> std::vector&lt;<span class="t">T</span>&gt;&amp; items) { <span class="k">return</span> items[<span class="n">0</span>]; }
+
+std::cout &lt;&lt; <span class="s">"int box: "</span> &lt;&lt; <span class="t">Box</span>(<span class="n">42</span>).get() &lt;&lt; <span class="s">'\\n'</span>;
+std::cout &lt;&lt; <span class="s">"str box: "</span> &lt;&lt; <span class="t">Box</span>(std::string(<span class="s">"hello"</span>)).get();
+<span class="c">// g++ -std=c++17 main.cpp</span>` },
+  { id: "go", name: "Go", note: "1.18 才引入泛型。类型参数在方括号里，any 是 interface{} 的别名，constraint 精确描述类型集合。",
+    code: `<span class="c">// [T any] 声明类型参数；Go 的泛型克制而精确</span>
+<span class="k">type</span> <span class="t">Box</span>[<span class="t">T</span> <span class="k">any</span>] <span class="k">struct</span> {
+    value <span class="t">T</span>
+}
+
+<span class="k">func</span> (b <span class="t">Box</span>[<span class="t">T</span>]) Get() <span class="t">T</span> { <span class="k">return</span> b.value }
+
+<span class="k">func</span> <span class="t">Map</span>[<span class="t">T</span>, <span class="t">U</span> <span class="k">any</span>](b <span class="t">Box</span>[<span class="t">T</span>], f <span class="k">func</span>(<span class="t">T</span>) <span class="t">U</span>) <span class="t">Box</span>[<span class="t">U</span>] {
+    <span class="k">return</span> <span class="t">Box</span>[<span class="t">U</span>]{f(b.value)}
+}
+
+<span class="k">func</span> <span class="t">First</span>[<span class="t">T</span> <span class="k">any</span>](items []<span class="t">T</span>) <span class="t">T</span> { <span class="k">return</span> items[<span class="n">0</span>] }
+
+fmt.Println(<span class="s">"int box:"</span>, <span class="t">Box</span>[<span class="k">int</span>]{value: <span class="n">42</span>}.Get())
+fmt.Println(<span class="s">"str box:"</span>, <span class="t">Box</span>[<span class="k">string</span>]{value: <span class="s">"hello"</span>}.Get())
+<span class="c">// go run main.go</span>` },
+  { id: "rust", name: "Rust", note: "trait bound 描述能力，单态化生成具体代码。标准库已有 Box，故示例叫 MyBox。",
+    code: `<span class="c">// 约束 = trait bound（T: Copy）；单态化零开销</span>
+<span class="k">struct</span> <span class="t">MyBox</span>&lt;<span class="t">T</span>&gt; { value: <span class="t">T</span> }
+
+<span class="k">impl</span>&lt;<span class="t">T</span>&gt; <span class="t">MyBox</span>&lt;<span class="t">T</span>&gt; {
+    <span class="k">fn</span> <span class="t">new</span>(value: <span class="t">T</span>) -&gt; <span class="k">Self</span> { <span class="t">MyBox</span> { value } }
+    <span class="k">fn</span> get(&amp;<span class="k">self</span>) -&gt; &amp;<span class="t">T</span> { &amp;<span class="k">self</span>.value }
+    <span class="c">// impl Fn(T) -> U 即“约束闭包类型”</span>
+    <span class="k">fn</span> map&lt;<span class="t">U</span>&gt;(<span class="k">self</span>, f: <span class="k">impl</span> <span class="t">Fn</span>(<span class="t">T</span>) -&gt; <span class="t">U</span>) -&gt; <span class="t">MyBox</span>&lt;<span class="t">U</span>&gt; {
+        <span class="t">MyBox</span>::new(f(<span class="k">self</span>.value))
+    }
+}
+
+<span class="k">fn</span> first&lt;<span class="t">T</span>: <span class="t">Copy</span>&gt;(items: &amp;[<span class="t">T</span>]) -&gt; <span class="t">T</span> { items[<span class="n">0</span>] }
+
+println!(<span class="s">"int box: {}"</span>, <span class="t">MyBox</span>::new(<span class="n">42</span>).get());
+<span class="c">// cargo run</span>` },
+  { id: "python", name: "Python", note: "鸭子类型：运行时不需要声明类型。TypeVar/Generic 是给 mypy 等静态检查器看的注解。",
+    code: `<span class="c"># 泛型只是注解：运行时仍然是鸭子类型</span>
+<span class="k">from</span> typing <span class="k">import</span> <span class="t">TypeVar</span>, <span class="t">Generic</span>, <span class="t">Callable</span>
+
+<span class="t">T</span> = <span class="t">TypeVar</span>(<span class="s">"T"</span>)
+<span class="t">U</span> = <span class="t">TypeVar</span>(<span class="s">"U"</span>)
+
+<span class="k">class</span> <span class="t">Box</span>(<span class="t">Generic</span>[<span class="t">T</span>]):
+    <span class="k">def</span> <span class="t">__init__</span>(self, value: <span class="t">T</span>):
+        self._value = value
+    <span class="k">def</span> get(self) -&gt; <span class="t">T</span>:
+        <span class="k">return</span> self._value
+    <span class="k">def</span> map(self, f: <span class="t">Callable</span>[[<span class="t">T</span>], <span class="t">U</span>]) -&gt; <span class="s">"Box[U]"</span>:
+        <span class="k">return</span> <span class="t">Box</span>(f(self._value))
+
+<span class="k">def</span> <span class="t">first</span>(items: <span class="k">list</span>[<span class="t">T</span>]) -&gt; <span class="t">T</span>:
+    <span class="k">return</span> items[<span class="n">0</span>]
+
+print(<span class="s">"int box:"</span>, <span class="t">Box</span>(<span class="n">42</span>).get())
+print(<span class="s">"doubled 21 -&gt;"</span>, <span class="t">Box</span>(<span class="n">21</span>).map(<span class="k">lambda</span> x: x * <span class="n">2</span>).get())
+<span class="c"># python main.py</span>` },
+  { id: "ts", name: "TypeScript", note: "语法接近 C#/Java。泛型在编译期擦除——产物是普通 JS，运行时无类型信息。",
+    code: `<span class="c">// &lt;T&gt; 声明类型参数，编译后擦除为普通 JS</span>
+<span class="k">class</span> <span class="t">Box</span>&lt;<span class="t">T</span>&gt; {
+  <span class="k">constructor</span>(<span class="k">private</span> value: <span class="t">T</span>) {}
+
+  get(): <span class="t">T</span> { <span class="k">return</span> <span class="k">this</span>.value; }
+
+  map&lt;<span class="t">U</span>&gt;(f: (v: <span class="t">T</span>) =&gt; <span class="t">U</span>): <span class="t">Box</span>&lt;<span class="t">U</span>&gt; {
+    <span class="k">return</span> <span class="k">new</span> <span class="t">Box</span>(f(<span class="k">this</span>.value));
+  }
+}
+
+<span class="k">function</span> <span class="t">first</span>&lt;<span class="t">T</span>&gt;(items: <span class="t">T</span>[]): <span class="t">T</span> {
+  <span class="k">return</span> items[<span class="n">0</span>];
+}
+
+console.log(<span class="s">"int box:"</span>, <span class="k">new</span> <span class="t">Box</span>(<span class="n">42</span>).get());
+console.log(<span class="s">"doubled 21 -&gt;"</span>, <span class="k">new</span> <span class="t">Box</span>(<span class="n">21</span>).map((x) =&gt; x * <span class="n">2</span>).get());
+<span class="c">// npx --no-install tsx main.ts</span>` },
+  { id:"java", name:"Java", note:"2004 年引入，编译期擦除（与 TS 同源）。类型参数只能是引用类型，约束用 extends。",
+    code:`<span class="k">class</span> <span class="t">Box</span>&lt;<span class="t">T</span>&gt; {
+    <span class="k">private final</span> <span class="t">T</span> value;
+    &lt;<span class="t">U</span>&gt; <span class="t">Box</span>&lt;<span class="t">U</span>&gt; map(<span class="t">Function</span>&lt;<span class="t">T</span>, <span class="t">U</span>&gt; f) {
+        <span class="k">return new</span> <span class="t">Box</span>&lt;&gt;(f.apply(value)); <span class="c">// 擦除：运行时无 T</span>
+    }
+}
+<span class="c">// 约束：&lt;T extends Comparable&lt;T&gt;&gt;；基本类型须装箱 int → Integer</span>` },
+];
+
+const tabs = document.getElementById("tabs");
+const codeEl = document.getElementById("code");
+const noteEl = document.getElementById("note");
+
+LANGS.forEach((l, i) => {
+  const b = document.createElement("button");
+  b.className = "tab" + (i === 0 ? " active" : "");
+  b.textContent = l.name;
+  b.onclick = () => {
+    document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+    b.classList.add("active");
+    codeEl.innerHTML = l.code;
+    noteEl.textContent = l.note;
+  };
+  tabs.appendChild(b);
+});
+codeEl.innerHTML = LANGS[0].code;
+noteEl.textContent = LANGS[0].note;
+</script>
+</body>
+</html>

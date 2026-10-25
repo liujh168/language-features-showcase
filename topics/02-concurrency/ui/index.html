@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>主题 02：并发模型 · 六语言对比</title>
+<style>
+  :root {
+    --bg: #0d1117; --panel: #161b22; --border: #30363d;
+    --fg: #e6edf3; --muted: #8b949e; --accent: #58a6ff; --ok: #3fb950;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--fg); font-family: "Segoe UI", "Microsoft YaHei", sans-serif; line-height: 1.7; }
+  .wrap { max-width: 960px; margin: 0 auto; padding: 32px 20px 64px; }
+  a { color: var(--accent); text-decoration: none; }
+  .crumb { color: var(--muted); font-size: 13px; margin-bottom: 12px; }
+  h1 { font-size: 26px; margin-bottom: 4px; }
+  .sub { color: var(--muted); margin-bottom: 24px; }
+  .card { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 20px; margin-bottom: 20px; }
+  .card h2 { font-size: 17px; margin-bottom: 12px; color: var(--accent); }
+  .tabs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+  .tab { padding: 6px 16px; border-radius: 20px; border: 1px solid var(--border); background: transparent; color: var(--muted); cursor: pointer; font-size: 14px; }
+  .tab.active { background: var(--accent); border-color: var(--accent); color: #0d1117; font-weight: 600; }
+  pre { background: #0a0e14; border: 1px solid var(--border); border-radius: 8px; padding: 16px; overflow-x: auto; font-family: Consolas, "Cascadia Code", monospace; font-size: 13.5px; line-height: 1.6; }
+  code .k { color: #ff7b72; } code .t { color: #79c0ff; } code .s { color: #a5d6ff; } code .c { color: #8b949e; font-style: italic; } code .n { color: #79c0ff; }
+  .note { color: var(--muted); font-size: 14px; margin-bottom: 12px; }
+  .run { border-left: 3px solid var(--ok); }
+  .run .label { color: var(--ok); font-size: 12px; letter-spacing: 1px; margin-bottom: 8px; }
+  .run pre { color: #7ee787; }
+  table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+  th, td { border: 1px solid var(--border); padding: 8px 10px; text-align: left; }
+  th { background: #1c2129; color: var(--accent); }
+  tr:nth-child(even) td { background: #141920; }
+  @media (max-width: 600px) { .wrap { padding: 20px 12px; } h1 { font-size: 21px; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="crumb"><a href="../../../viewer.html?file=README.md">← 返回总索引</a></div>
+  <h1>主题 02：并发模型 Concurrency</h1>
+  <p class="sub">同一道题（4 个并发 worker + 汇合点）在六种语言中的写法 · 学习对比用</p>
+
+  <div class="card">
+    <h2>本题要做什么</h2>
+    <ol style="padding-left: 22px; color: var(--muted);">
+      <li>启动 4 个并发 worker，第 i 个返回 <code>(i, i*10)</code></li>
+      <li>主线程在<strong style="color:var(--fg)">汇合点</strong>等全部完成</li>
+      <li>按编号排序输出 —— 并发完成顺序不确定，排序让六个语言输出<strong style="color:var(--fg)">逐字节一致</strong></li>
+    </ol>
+  </div>
+
+  <div class="card">
+    <h2>代码对比（点击切换语言）</h2>
+    <div class="tabs" id="tabs"></div>
+    <p class="note" id="note"></p>
+    <pre><code id="code"></code></pre>
+    <div class="run" style="margin-top:14px;">
+      <div class="label">预期输出（六个语言逐字节一致）</div>
+      <pre>start 4 workers
+result from worker 1: 10
+result from worker 2: 20
+result from worker 3: 30
+result from worker 4: 40
+all done</pre>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>差异速览</h2>
+    <table>
+      <tr><th>维度</th><th>Go</th><th>Rust</th><th>C++</th><th>Python</th><th>TypeScript</th></tr>
+      <tr><td>基本单元</td><td>goroutine（M:N 轻量）</td><td>系统线程（1:1）</td><td>系统线程</td><td>线程（GIL 限制）</td><td>单线程事件循环</td></tr>
+      <tr><td>汇合原语</td><td>WaitGroup / channel</td><td>join / channel</td><td>future.get()</td><td>future.result()</td><td>Promise.all</td></tr>
+      <tr><td>竞争防护</td><td>channel 惯用法</td><td>编译期 Send/Sync</td><td>无（靠自己）</td><td>GIL（有限）</td><td>单线程天然免疫</td></tr>
+      <tr><td>一句话</td><td>开几万个协程像玩</td><td>最安全的系统并发</td><td>自由且危险</td><td>IO 够用别碰 CPU</td><td>并发≠并行</td></tr>
+    </table>
+  </div>
+
+  <div class="card">
+    <h2>扩展阅读方向</h2>
+    <p class="note">本 demo 刻意只展示各语言的<strong style="color:var(--fg)">入门并发原语</strong>。进阶对比值得加：Rust tokio vs Go goroutine 的百万级任务调度、
+    Python asyncio 与 TS 事件循环的同构性、C++ 无栈协程（C++20 co_await）。已列入 ROADMAP 内容扩展项。</p>
+  </div>
+</div>
+
+<script>
+const LANGS = [
+  { id: "go", name: "Go", note: "goroutine 几 KB 栈、M:N 调度；channel 即“通过通信共享内存”。",
+    code: `<span class="k">func</span> <span class="t">work</span>(i <span class="k">int</span>, wg *<span class="t">sync</span>.<span class="t">WaitGroup</span>, ch <span class="k">chan</span>&lt;- [<span class="n">2</span>]<span class="k">int</span>) {
+    <span class="k">defer</span> wg.Done()
+    ch &lt;- [<span class="n">2</span>]<span class="k">int</span>{i, i * <span class="n">10</span>}
+}
+
+<span class="k">func</span> <span class="t">main</span>() {
+    fmt.Println(<span class="s">"start 4 workers"</span>)
+    ch := <span class="k">make</span>(<span class="k">chan</span> [<span class="n">2</span>]<span class="k">int</span>, <span class="n">4</span>)
+    <span class="k">var</span> wg <span class="t">sync</span>.<span class="t">WaitGroup</span>
+    <span class="k">for</span> i := <span class="n">1</span>; i &lt;= <span class="n">4</span>; i++ {
+        wg.Add(<span class="n">1</span>)
+        <span class="k">go</span> work(i, &amp;wg, ch) <span class="c">// go 关键字：一个 goroutine</span>
+    }
+    wg.Wait() <span class="c">// 汇合点</span>
+    <span class="c">// ...收集 channel 结果并排序输出</span>
+}` },
+  { id: "rust", name: "Rust", note: "std::thread + mpsc；Send/Sync 让数据竞争编译期报错。",
+    code: `<span class="k">fn</span> <span class="t">work</span>(i: <span class="k">i32</span>, tx: <span class="t">mpsc</span>::<span class="t">Sender</span>&lt;(<span class="k">i32</span>, <span class="k">i32</span>)&gt;) {
+    tx.send((i, i * <span class="n">10</span>)).unwrap(); <span class="c">// 所有权随消息转移</span>
+}
+
+<span class="k">fn</span> <span class="t">main</span>() {
+    <span class="k">let</span> (tx, rx) = <span class="t">mpsc</span>::channel();
+    <span class="k">let</span> <span class="k">mut</span> handles = vec![];
+    <span class="k">for</span> i <span class="k">in</span> <span class="n">1</span>..=<span class="n">4</span> {
+        <span class="k">let</span> tx = tx.clone();
+        handles.push(thread::spawn(<span class="k">move</span> || work(i, tx)));
+    }
+    <span class="k">drop</span>(tx);
+    <span class="k">let</span> <span class="k">mut</span> results: <span class="t">Vec</span>&lt;(<span class="k">i32</span>, <span class="k">i32</span>)&gt; = rx.iter().collect();
+    <span class="k">for</span> h <span class="k">in</span> handles { h.join().unwrap(); } <span class="c">// 汇合</span>
+    results.sort();
+    <span class="c">// ...输出</span>
+}` },
+  { id: "cpp", name: "C++", note: "std::async 起任务，future.get() 汇合。自由：忘了 join 就 terminate。",
+    code: `<span class="k">auto</span> f = std::async(std::launch::async,
+                     [i] { <span class="k">return</span> std::make_pair(i, work(i)); });
+<span class="c">// std::async 返回 future —— 任务的“提货单”</span>
+
+std::vector&lt;std::pair&lt;<span class="k">int</span>, <span class="k">int</span>&gt;&gt; results;
+<span class="k">for</span> (<span class="k">auto</span>&amp; fut : futures) {
+    results.push_back(fut.get()); <span class="c">// 汇合并取回结果</span>
+}
+std::sort(results.begin(), results.end());` },
+  { id: "python", name: "Python", note: "GIL 下线程不并行 CPU，但 IO 等待会释放 GIL，IO 任务依然并发有效。",
+    code: `<span class="k">from</span> concurrent.futures <span class="k">import</span> <span class="t">ThreadPoolExecutor</span>
+
+<span class="k">def</span> <span class="t">work</span>(i: <span class="k">int</span>) -&gt; <span class="k">tuple</span>[<span class="k">int</span>, <span class="k">int</span>]:
+    <span class="k">return</span> i, i * <span class="n">10</span>
+
+<span class="k">with</span> <span class="t">ThreadPoolExecutor</span>(max_workers=<span class="n">4</span>) <span class="k">as</span> pool:
+    futures = [pool.submit(work, i) <span class="k">for</span> i <span class="k">in</span> <span class="k">range</span>(<span class="n">1</span>, <span class="n">5</span>)]
+    results = [f.result() <span class="k">for</span> f <span class="k">in</span> futures]  <span class="c"># 汇合</span>
+results.sort()` },
+  { id: "ts", name: "TypeScript", note: "单线程事件循环：并发是任务交错不是并行；await 处让出，天然无数据竞争。",
+    code: `<span class="k">async function</span> <span class="t">work</span>(i: <span class="k">number</span>): <span class="t">Promise</span>&lt;[<span class="k">number</span>, <span class="k">number</span>]&gt; {
+  <span class="k">await new</span> <span class="t">Promise</span>((r) =&gt; setTimeout(r, <span class="n">10</span>)); <span class="c">// 模拟异步 IO</span>
+  <span class="k">return</span> [i, i * <span class="n">10</span>];
+}
+
+<span class="c">// 4 个任务同时挂到事件循环，Promise.all 汇合</span>
+<span class="k">const</span> results = <span class="k">await</span> <span class="t">Promise</span>.all([<span class="n">1</span>, <span class="n">2</span>, <span class="n">3</span>, <span class="n">4</span>].map(work));
+results.sort((a, b) =&gt; a[<span class="n">0</span>] - b[<span class="n">0</span>]);` },
+  { id:"java", name:"Java", note:"Java 21 虚拟线程（JEP 444）：轻量协程，一个任务一个线程，开销对标 goroutine。",
+    code:`<span class="t">ExecutorService</span> pool =
+    <span class="t">Executors</span>.newVirtualThreadPerTaskExecutor(); <span class="c">// 虚拟线程</span>
+<span class="t">Future</span>&lt;<span class="k">int</span>[]&gt; f = pool.submit(() -&gt;
+    <span class="k">new int</span>[]{n, work(n)});
+<span class="k">int</span>[] r = f.get(); <span class="c">// 汇合：阻塞直到完成</span>
+pool.shutdown();` },
+];
+
+const tabs = document.getElementById("tabs");
+const codeEl = document.getElementById("code");
+const noteEl = document.getElementById("note");
+
+LANGS.forEach((l, i) => {
+  const b = document.createElement("button");
+  b.className = "tab" + (i === 0 ? " active" : "");
+  b.textContent = l.name;
+  b.onclick = () => {
+    document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+    b.classList.add("active");
+    codeEl.innerHTML = l.code;
+    noteEl.textContent = l.note;
+  };
+  tabs.appendChild(b);
+});
+codeEl.innerHTML = LANGS[0].code;
+noteEl.textContent = LANGS[0].note;
+</script>
+</body>
+</html>

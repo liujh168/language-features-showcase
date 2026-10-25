@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>主题 09：FFI 与互操作 · 五语言对比</title>
+<style>
+  :root { --bg:#0d1117; --panel:#161b22; --border:#30363d; --fg:#e6edf3; --muted:#8b949e; --accent:#58a6ff; --ok:#3fb950; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { background:var(--bg); color:var(--fg); font-family:"Segoe UI","Microsoft YaHei",sans-serif; line-height:1.7; }
+  .wrap { max-width:960px; margin:0 auto; padding:32px 20px 64px; }
+  a { color:var(--accent); text-decoration:none; }
+  .crumb { color:var(--muted); font-size:13px; margin-bottom:12px; }
+  h1 { font-size:26px; margin-bottom:4px; }
+  .sub { color:var(--muted); margin-bottom:24px; }
+  .card { background:var(--panel); border:1px solid var(--border); border-radius:10px; padding:20px; margin-bottom:20px; }
+  .card h2 { font-size:17px; margin-bottom:12px; color:var(--accent); }
+  .tabs { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px; }
+  .tab { padding:6px 16px; border-radius:20px; border:1px solid var(--border); background:transparent; color:var(--muted); cursor:pointer; font-size:14px; }
+  .tab.active { background:var(--accent); border-color:var(--accent); color:#0d1117; font-weight:600; }
+  pre { background:#0a0e14; border:1px solid var(--border); border-radius:8px; padding:16px; overflow-x:auto; font-family:Consolas,"Cascadia Code",monospace; font-size:13.5px; line-height:1.6; }
+  code .k{color:#ff7b72;} code .t{color:#79c0ff;} code .s{color:#a5d6ff;} code .c{color:#8b949e;font-style:italic;} code .n{color:#79c0ff;}
+  .note { color:var(--muted); font-size:14px; margin-bottom:12px; }
+  .run { border-left:3px solid var(--ok); }
+  .run .label { color:var(--ok); font-size:12px; letter-spacing:1px; margin-bottom:8px; }
+  .run pre { color:#7ee787; }
+  table { width:100%; border-collapse:collapse; font-size:13.5px; }
+  th,td { border:1px solid var(--border); padding:8px 10px; text-align:left; }
+  th { background:#1c2129; color:var(--accent); }
+  tr:nth-child(even) td { background:#141920; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="crumb"><a href="../../../viewer.html?file=README.md">← 返回总索引</a></div>
+  <h1>主题 09：FFI 与互操作</h1>
+  <p class="sub">同一道题：各语言调用 C 标准库的 strlen · 工程量从一行到五步</p>
+
+  <div class="card">
+    <h2>本题要做什么</h2>
+    <ol style="padding-left:22px; color:var(--muted);">
+      <li>在语言内声明/加载 C 函数 <code>strlen</code></li>
+      <li>对两个字符串求长度，输出结果</li>
+      <li>体会五种 FFI 机制的工程量差异</li>
+    </ol>
+  </div>
+
+  <div class="card">
+    <h2>代码对比（点击切换语言）</h2>
+    <div class="tabs" id="tabs"></div>
+    <p class="note" id="note"></p>
+    <pre><code id="code"></code></pre>
+    <div class="run" style="margin-top:14px;">
+      <div class="label">预期输出（五语言逐字节一致）</div>
+      <pre>strlen("hello") = 5
+strlen("modern languages") = 16</pre>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>工程量对比</h2>
+    <table>
+      <tr><th>语言</th><th>机制</th><th>步骤</th><th>一句话</th></tr>
+      <tr><td>C++</td><td>extern "C"</td><td>0 步直接调</td><td>C 的近亲</td></tr>
+      <tr><td>Rust</td><td>extern 块 + unsafe</td><td>声明即调</td><td>FFI 一等公民</td></tr>
+      <tr><td>Python</td><td>ctypes</td><td>2 行</td><td>胶水之王</td></tr>
+      <tr><td>Go</td><td>syscall.NewLazyDLL</td><td>声明+调用</td><td>仅 Windows；跨平台用 cgo</td></tr>
+      <tr><td>Java</td><td>JNI</td><td>5 步全手工</td><td>繁琐到催生 JNA/FFM API</td></tr>
+      <tr><td>TypeScript</td><td colspan="3">无内建 FFI（需 N-API 插件 / koffi）——本主题留白即结论，见 typescript/README.md</td></tr>
+    </table>
+  </div>
+</div>
+
+<script>
+const LANGS = [
+  { id:"cpp", name:"C++", note:"extern \"C\" 关闭名字修饰，C 库直接链接。",
+    code:`<span class="c">// 声明在 &lt;cstring&gt;，链接由编译器自动处理</span>
+<span class="k">#include</span> <span class="s">&lt;cstring&gt;</span>
+std::cout &lt;&lt; std::strlen(<span class="s">"hello"</span>); <span class="c">// = 5，零额外步骤</span>` },
+  { id:"rust", name:"Rust", note:"extern 块声明 C 函数，unsafe 块调用——零开销，安全自负。",
+    code:`<span class="k">extern</span> <span class="s">"C"</span> {
+    <span class="k">fn</span> <span class="t">strlen</span>(s: *<span class="k">const</span> <span class="t">c_char</span>) -&gt; <span class="k">usize</span>;
+}
+
+<span class="k">let</span> c = <span class="t">CString</span>::new(<span class="s">"hello"</span>).unwrap();
+<span class="k">unsafe</span> { strlen(c.as_ptr()) } <span class="c">// = 5</span>` },
+  { id:"python", name:"Python", note:"ctypes 直接加载系统 DLL，无需写 C 无需编译。",
+    code:`<span class="k">import</span> ctypes
+
+ucrt = ctypes.CDLL(<span class="s">"ucrtbase.dll"</span>)
+ucrt.strlen.restype = ctypes.c_size_t
+
+ucrt.strlen(<span class="s">b"hello"</span>) <span class="c"># = 5</span>` },
+  { id:"go", name:"Go", note:"syscall.NewLazyDLL 纯 Go 调 Windows DLL（cgo 之外的第二路）。",
+    code:`<span class="k">var</span> strlen = syscall.NewLazyDLL(<span class="s">"ucrtbase.dll"</span>).NewProc(<span class="s">"strlen"</span>)
+
+p, _ := syscall.BytePtrFromString(<span class="s">"hello"</span>)
+n, _, _ := strlen.Call(uintptr(unsafe.Pointer(p))) <span class="c">// n = 5</span>` },
+  { id:"java", name:"Java (JNI)", note:"五步全手工：javac -h → C 实现 → cl 编 DLL → loadLibrary → 调 native。",
+    code:`<span class="c">// 1. Java 声明 native 方法</span>
+<span class="k">static native</span> <span class="k">long</span> <span class="t">strlen</span>(String s);
+<span class="k">static</span> { System.loadLibrary(<span class="s">"main"</span>); }
+
+<span class="c">// 2. javac -h 生成头文件，3. 写 C 实现：</span>
+<span class="t">JNIEXPORT</span> <span class="k">jlong</span> <span class="t">JNICALL</span> <span class="t">Java_Main_strlen</span>(
+        <span class="t">JNIEnv</span> *env, <span class="k">jclass</span> cls, <span class="k">jstring</span> s) {
+    <span class="k">const char</span> *cs = (*env)-&gt;GetStringUTFChars(env, s, <span class="k">NULL</span>);
+    <span class="k">jlong</span> n = strlen(cs);
+    (*env)-&gt;ReleaseStringUTFChars(env, s, cs);
+    <span class="k">return</span> n;
+}
+<span class="c">// 4. cl /LD 编成 main.dll，5. 运行</span>` },
+];
+const tabs = document.getElementById("tabs");
+const codeEl = document.getElementById("code");
+const noteEl = document.getElementById("note");
+LANGS.forEach((l, i) => {
+  const b = document.createElement("button");
+  b.className = "tab" + (i === 0 ? " active" : "");
+  b.textContent = l.name;
+  b.onclick = () => {
+    document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+    b.classList.add("active");
+    codeEl.innerHTML = l.code; noteEl.textContent = l.note;
+  };
+  tabs.appendChild(b);
+});
+codeEl.innerHTML = LANGS[0].code;
+noteEl.textContent = LANGS[0].note;
+</script>
+</body>
+</html>

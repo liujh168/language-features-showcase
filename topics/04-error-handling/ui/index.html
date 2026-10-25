@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>主题 04：错误处理 · 六语言对比</title>
+<style>
+  :root { --bg:#0d1117; --panel:#161b22; --border:#30363d; --fg:#e6edf3; --muted:#8b949e; --accent:#58a6ff; --ok:#3fb950; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { background:var(--bg); color:var(--fg); font-family:"Segoe UI","Microsoft YaHei",sans-serif; line-height:1.7; }
+  .wrap { max-width:960px; margin:0 auto; padding:32px 20px 64px; }
+  a { color:var(--accent); text-decoration:none; }
+  .crumb { color:var(--muted); font-size:13px; margin-bottom:12px; }
+  h1 { font-size:26px; margin-bottom:4px; }
+  .sub { color:var(--muted); margin-bottom:24px; }
+  .card { background:var(--panel); border:1px solid var(--border); border-radius:10px; padding:20px; margin-bottom:20px; }
+  .card h2 { font-size:17px; margin-bottom:12px; color:var(--accent); }
+  .tabs { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px; }
+  .tab { padding:6px 16px; border-radius:20px; border:1px solid var(--border); background:transparent; color:var(--muted); cursor:pointer; font-size:14px; }
+  .tab.active { background:var(--accent); border-color:var(--accent); color:#0d1117; font-weight:600; }
+  pre { background:#0a0e14; border:1px solid var(--border); border-radius:8px; padding:16px; overflow-x:auto; font-family:Consolas,"Cascadia Code",monospace; font-size:13.5px; line-height:1.6; }
+  code .k { color:#ff7b72; } code .t { color:#79c0ff; } code .s { color:#a5d6ff; } code .c { color:#8b949e; font-style:italic; } code .n { color:#79c0ff; }
+  .note { color:var(--muted); font-size:14px; margin-bottom:12px; }
+  .run { border-left:3px solid var(--ok); }
+  .run .label { color:var(--ok); font-size:12px; letter-spacing:1px; margin-bottom:8px; }
+  .run pre { color:#7ee787; }
+  table { width:100%; border-collapse:collapse; font-size:13.5px; }
+  th,td { border:1px solid var(--border); padding:8px 10px; text-align:left; }
+  th { background:#1c2129; color:var(--accent); }
+  tr:nth-child(even) td { background:#141920; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="crumb"><a href="../../../viewer.html?file=README.md">← 返回总索引</a></div>
+  <h1>主题 04：错误处理 Error Handling</h1>
+  <p class="sub">“错误是值”派 vs “错误是控制流”派的正面对撞 · 学习对比用</p>
+
+  <div class="card">
+    <h2>本题要做什么</h2>
+    <p class="note">解析正整数 + 安全除法，成功失败各一次。失败原因必须出现在输出里，
+    六个语言输出<strong style="color:var(--fg)">逐字节一致</strong>。</p>
+  </div>
+
+  <div class="card">
+    <h2>代码对比（点击切换语言）</h2>
+    <div class="tabs" id="tabs"></div>
+    <p class="note" id="note"></p>
+    <pre><code id="code"></code></pre>
+    <div class="run" style="margin-top:14px;">
+      <div class="label">预期输出（六个语言逐字节一致）</div>
+      <pre>parse "42" -&gt; 42
+parse "abc" -&gt; error: invalid digit
+10 / 2 = 5
+10 / 0 -&gt; error: division by zero</pre>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>差异速览</h2>
+    <table>
+      <tr><th>维度</th><th>Rust</th><th>Go</th><th>C++</th><th>Python</th><th>TypeScript</th></tr>
+      <tr><td>机制</td><td>Result&lt;T,E&gt;</td><td>(T, error)</td><td>throw/catch</td><td>raise/except</td><td>throw/try-catch</td></tr>
+      <tr><td>失败可见性</td><td>签名上</td><td>签名上</td><td>看不出</td><td>看不出</td><td>看不出</td></tr>
+      <tr><td>强制处理</td><td>编译期</td><td>惯例</td><td>否</td><td>否</td><td>否</td></tr>
+      <tr><td>零成本</td><td>✅</td><td>✅</td><td>❌</td><td>❌</td><td>❌</td></tr>
+    </table>
+  </div>
+
+  <div class="card">
+    <h2>教学要点</h2>
+    <p class="note">1. Rust/Go 把失败写进<strong style="color:var(--fg)">类型签名</strong>，想无视都难；C++/Python/TS 的异常穿透调用栈，写起来爽但调用方一无所知。<br>
+    2. C++ 现代趋势是回归“错误是值”：<strong style="color:var(--fg)">std::expected（C++23）</strong>就是 Rust Result 的表亲。<br>
+    3. TS 的坑：Number("abc") 返回 NaN 而不是抛错——必须自己写校验主动 throw。</p>
+  </div>
+</div>
+
+<script>
+const LANGS = [
+  { id:"rust", name:"Rust", note:"Result 是类型系统的一部分；match 强制处理两个分支。? 运算符可传播错误。",
+    code:`<span class="k">fn</span> <span class="t">parse_positive</span>(s: &<span class="k">str</span>) -&gt; <span class="t">Result</span>&lt;<span class="k">i32</span>, <span class="t">String</span>&gt; {
+    s.parse::&lt;<span class="k">i32</span>&gt;().map_err(|_| <span class="s">"invalid digit"</span>.to_string())
+}
+
+<span class="k">match</span> parse_positive(<span class="s">"abc"</span>) {
+    <span class="t">Ok</span>(v)  =&gt; println!(<span class="s">"{} "</span>, v),
+    <span class="t">Err</span>(e) =&gt; println!(<span class="s">"error: {}"</span>, e),  <span class="c">// 漏处理 Err？编译器不答应</span>
+}` },
+  { id:"go", name:"Go", note:"错误是普通返回值。没有 try-catch，每个失败调用显式检查 err。",
+    code:`<span class="k">func</span> <span class="t">parsePositive</span>(s <span class="k">string</span>) (<span class="k">int</span>, <span class="k">error</span>) {
+    n, err := strconv.Atoi(s)
+    <span class="k">if</span> err != <span class="k">nil</span> {
+        <span class="k">return</span> <span class="n">0</span>, errors.New(<span class="s">"invalid digit"</span>)
+    }
+    <span class="k">return</span> n, <span class="k">nil</span>
+}
+
+<span class="k">if</span> v, err := parsePositive(<span class="s">"abc"</span>); err != <span class="k">nil</span> {
+    fmt.Println(<span class="s">`parse "abc" -&gt; error:`</span>, err)
+} <span class="k">else</span> {
+    fmt.Println(<span class="s">`parse "abc" -&gt;`</span>, v)
+}` },
+  { id:"cpp", name:"C++", note:"异常不在签名上声明，调用方不看实现不知道会抛。现代正道：std::expected。",
+    code:`<span class="k">int</span> <span class="t">parsePositive</span>(<span class="k">const</span> std::string&amp; s) {
+    <span class="k">try</span> {
+        <span class="k">int</span> v = std::stoi(s);
+        ...
+    } <span class="k">catch</span> (<span class="k">const</span> std::invalid_argument&amp;) {
+        <span class="k">throw</span> std::runtime_error(<span class="s">"invalid digit"</span>);
+    }
+}
+
+<span class="k">try</span> {
+    std::cout &lt;&lt; <span class="s">"10 / 0 = "</span> &lt;&lt; divSafe(<span class="n">10</span>, <span class="n">0</span>);
+} <span class="k">catch</span> (<span class="k">const</span> std::runtime_error&amp; e) {
+    std::cout &lt;&lt; <span class="s">"error: "</span> &lt;&lt; e.what();
+}` },
+  { id:"python", name:"Python", note:"异常是唯一错误机制。哲学：EAFP——“先做了再说，出问题再原谅”。",
+    code:`<span class="k">def</span> <span class="t">parse_positive</span>(s: <span class="k">str</span>) -&gt; <span class="k">int</span>:
+    <span class="k">try</span>:
+        <span class="k">return</span> <span class="k">int</span>(s)
+    <span class="k">except</span> <span class="t">ValueError</span>:
+        <span class="k">raise</span> <span class="t">ValueError</span>(<span class="s">"invalid digit"</span>)
+
+<span class="k">try</span>:
+    print(<span class="s">f'parse "abc" -&gt; {parse_positive("abc")}'</span>)
+<span class="k">except</span> <span class="t">ValueError</span> <span class="k">as</span> e:
+    print(<span class="s">f'parse "abc" -&gt; error: {e}'</span>)` },
+  { id:"ts", name:"TypeScript", note:"Number(\"abc\") 返回 NaN 不抛错——必须主动校验 + throw。",
+    code:`<span class="k">function</span> <span class="t">parsePositive</span>(s: <span class="k">string</span>): <span class="k">number</span> {
+  <span class="k">if</span> (!/^\\d+$/.test(s)) <span class="k">throw new</span> <span class="t">Error</span>(<span class="s">"invalid digit"</span>);
+  <span class="k">return</span> Number(s);
+}
+
+<span class="k">try</span> {
+  console.log(<span class="s">'parse "abc" -&gt; '</span> + parsePositive(<span class="s">"abc"</span>));
+} <span class="k">catch</span> (e) {
+  console.log(<span class="s">'parse "abc" -&gt; error: '</span> + (e <span class="k">as</span> Error).message);
+}` },
+  { id:"java", name:"Java", note:"只有异常（checked/unchecked 双轨）；checked 强制处理是 Java 独有的争议设计。",
+    code:`<span class="k">try</span> {
+    <span class="k">return</span> <span class="t">Integer</span>.parseInt(s);
+} <span class="k">catch</span> (<span class="t">NumberFormatException</span> e) {
+    <span class="k">throw new</span> <span class="t">IllegalArgumentException</span>(<span class="s">"invalid digit"</span>);
+}
+<span class="c">// checked 异常（IOException）编译器强制 catch 或 throws</span>` },
+];
+const tabs = document.getElementById("tabs"), codeEl = document.getElementById("code"), noteEl = document.getElementById("note");
+LANGS.forEach((l, i) => {
+  const b = document.createElement("button");
+  b.className = "tab" + (i === 0 ? " active" : "");
+  b.textContent = l.name;
+  b.onclick = () => {
+    document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+    b.classList.add("active"); codeEl.innerHTML = l.code; noteEl.textContent = l.note;
+  };
+  tabs.appendChild(b);
+});
+codeEl.innerHTML = LANGS[0].code; noteEl.textContent = LANGS[0].note;
+</script>
+</body>
+</html>
